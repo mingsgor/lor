@@ -1,0 +1,2701 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LoR PoC Build Builder</title>
+<style>
+  :root{--bg:#07111d;--panel:#0d1b2b;--panel2:#12243a;--line:#234361;--text:#eef5ff;--muted:#93abc2;--accent:#f3c54e;--cyan:#63d8ff;--danger:#ff7777;--glow:rgba(74,190,255,.14)}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(circle at 50% -10%,#173c58 0,#0a1827 34%,#07111d 72%);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;min-height:100vh}
+  .app{width:min(820px,100%);margin:0 auto;padding:14px 12px 64px}
+  header{position:sticky;top:0;z-index:10;background:rgba(7,17,29,.92);backdrop-filter:blur(14px);padding:10px 4px 14px;border-bottom:1px solid rgba(99,216,255,.16)}
+  .brand-mark{font-size:10px;letter-spacing:2px;color:var(--accent);font-weight:850;margin-bottom:4px}.brand-mark span{padding:0 7px;color:#d9f7ff}
+  h1{font-size:25px;margin:0 0 4px;letter-spacing:.2px}.sub{color:var(--muted);font-size:12px}
+  section{margin-top:15px;background:linear-gradient(145deg,rgba(13,31,48,.96),rgba(8,20,34,.96));border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+  .title{padding:11px 14px;background:linear-gradient(90deg,rgba(34,67,94,.72),rgba(22,40,59,.72));border-bottom:1px solid rgba(72,130,166,.35);display:flex;align-items:center;justify-content:space-between;font-weight:800;letter-spacing:.1px}.title small{font-weight:600;color:var(--muted)}.champ-title-tools{display:flex;align-items:center;gap:9px;margin-left:auto}.champ-search-wrap{position:relative;display:flex;align-items:center}.champ-search{width:230px;height:32px;padding:5px 34px 5px 11px;border-radius:9px;border:1px solid #315473;background:#0a1827;color:var(--text);font:600 13px Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;outline:none;transition:.15s}.champ-search::placeholder{color:#718ba5}.champ-search:focus{border-color:#6a8ca9;box-shadow:0 0 0 2px rgba(99,216,255,.08)}.champ-search-clear{position:absolute;right:5px;top:4px;width:24px;height:24px;padding:0;border:0;background:transparent;color:#91a8bd;border-radius:6px;font-size:20px;line-height:20px;cursor:pointer;display:none;transform:none!important}.champ-search-clear:hover{color:#fff;background:#172a3d;border-color:transparent;transform:none!important}.champ-title-tools .champ-selected-label{font-weight:600;color:var(--muted);white-space:nowrap}.champ-search-empty{grid-column:1/-1;padding:24px 10px;text-align:center;color:var(--muted);font-size:13px}
+  .body{padding:12px}.chips,.grid{display:flex;flex-wrap:wrap;gap:8px}.adventure-tools{display:grid;grid-template-columns:180px minmax(170px,1fr) minmax(260px,1.4fr);gap:8px;width:min(780px,100%);margin-left:auto}.adventure-select option.event-group-header{color:#e05252;font-weight:800;background:#111720;}.adventure-select,.adventure-input{height:34px;padding:6px 10px;border-radius:9px;border:1px solid #315473;background:#0a1827;color:var(--text);font:600 13px Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;outline:none}.adventure-select:focus,.adventure-input:focus{border-color:#6a8ca9;box-shadow:0 0 0 2px rgba(99,216,255,.08)}.adventure-row{display:grid;grid-template-columns:1fr 150px;gap:8px;align-items:center}.adventure-difficulty{height:34px;display:flex;align-items:center;justify-content:center;border:1px solid #315473;border-radius:9px;background:#0a1827;color:var(--accent);font-size:12px;font-weight:800}.adventure-empty{color:var(--muted);font-size:12px}.region-grid{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:4px;overflow:visible;padding:2px 2px 6px}.region-card{flex:1 1 0;width:auto;max-width:54px;min-width:46px;height:54px;min-height:54px;padding:4px;display:grid;place-items:center;text-align:center;position:relative}.region-card .region-img{width:46px;height:46px;object-fit:contain;border-radius:50%;background:#081421;border:2px solid #35506a;display:block;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}.region-card .region-text{position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%);z-index:30;white-space:nowrap;font-size:11px;font-weight:750;color:#eef4fb;background:#081421;border:1px solid #46627c;border-radius:6px;padding:4px 7px;box-shadow:0 6px 18px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .12s ease,transform .12s ease}.region-card:hover .region-text,.region-card:focus-visible .region-text{opacity:1;transform:translateX(-50%) translateY(-2px)}.region-card:hover .region-img,.region-card:focus-visible .region-img{transform:scale(1.06);border-color:#6f91b2}.region-card.region-all .region-all-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:50%;background:#081421;border:2px solid #35506a;color:var(--accent);font-size:22px;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}.region-card:hover .region-all-icon,.region-card:focus-visible .region-all-icon{transform:scale(1.06);border-color:#6f91b2}.region-card.active .region-img,.region-card.active .region-all-icon{border-color:var(--accent);box-shadow:0 0 0 2px rgba(242,201,76,.18),0 0 16px rgba(242,201,76,.16)}.region-card.active{background:transparent;border-color:transparent;box-shadow:none}.region-card:focus{outline:none}
+  button,.selectlike{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;cursor:pointer;transition:.15s}button:hover{border-color:#6b8aa5;transform:translateY(-1px)}button.active{border-color:var(--accent);box-shadow:0 0 0 1px rgba(242,201,76,.25) inset;background:#182e3a}button.danger{color:#ff9a9a;border-color:#633b3b}
+  .champ-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}.champ{padding:9px 6px;text-align:center}.portrait{width:44px;height:44px;margin:0 auto 6px;border-radius:50%;display:block;object-fit:cover;background:#17202b;border:2px solid #60768c}.champ.active .portrait{opacity:1;visibility:visible;border-color:var(--accent);box-shadow:0 0 0 2px rgba(242,201,76,.18),0 0 18px rgba(242,201,76,.28),0 0 30px rgba(242,201,76,.12)}.portrait.img-missing{opacity:.55;background:radial-gradient(circle,#24374a 0 55%,#111c28 56%);border-color:#60768c}.champ-name{font-size:12px;font-weight:700}.region{font-size:11px;color:var(--muted);display:flex;justify-content:center;gap:4px;flex-wrap:wrap;margin-top:3px}.region-badge{display:inline-block;padding:2px 5px;border:1px solid #435d76;border-radius:999px;background:#0b1724;color:#b9cbe0;font-size:9px;line-height:1.2}
+  .item{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;background:linear-gradient(145deg,#0e1a28,#09131f);border:1px solid #24415c;border-radius:10px;padding:9px;margin-bottom:8px}.icon{width:44px;height:44px;border-radius:9px;background:linear-gradient(145deg,#21364d,#0a131e);display:grid;place-items:center;font-size:22px;border:1px solid #46647f}.name{font-weight:750;font-size:13px}.desc{font-size:11px;color:var(--muted);line-height:1.35;margin-top:3px}.check{width:20px;height:20px;accent-color:var(--accent)}
+  .select-all-btn{font-size:11px;font-weight:750;padding:6px 9px;border-radius:7px;white-space:nowrap}.star-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:8px}.star{min-height:78px;display:flex;align-items:center;justify-content:center;position:relative;background:linear-gradient(145deg,#102239,#091522);border:1px solid #294763;border-radius:10px;padding:12px 36px}.star:last-child{border-bottom:1px solid #294763}.stars{color:var(--accent);font-size:27px;line-height:1;white-space:nowrap;text-align:center;letter-spacing:1px}.stars.rune{width:42px;height:42px;border:2px solid var(--accent);border-radius:50%;display:grid;place-items:center;font-size:24px;letter-spacing:0;box-shadow:inset 0 0 0 3px rgba(243,197,78,.12),0 0 12px rgba(243,197,78,.12)}.rune-symbol{display:block;transform:scale(.9);font-weight:900}.stars.rune-text{font-size:24px;font-weight:900;letter-spacing:1px}.star .check{position:absolute;right:10px;top:10px;transform:none;margin:0;width:20px;height:20px}.bonus-grid{display:grid;grid-template-columns:repeat(var(--bonus-cols,5),minmax(0,1fr));gap:6px;padding:8px}.bonus-item{min-height:70px;display:flex;align-items:center;justify-content:center;position:relative;background:linear-gradient(145deg,#102239,#091522);border:1px solid #294763;border-radius:10px;padding:8px}.bonus-item .bonus-number{font-size:27px;line-height:1;font-weight:850;color:var(--accent)}.bonus-item .check{position:absolute;right:10px;top:10px;width:20px;height:20px;margin:0}.bonus-name{display:none}.bonus-cost,.bonus-cost-icon,.bonus-item .name,.bonus-item .desc{display:none}.cost{font-size:11px;color:var(--muted)}
+  .slot-grid{display:grid;grid-template-columns:1fr;gap:7px;margin-bottom:8px}.slot{display:grid;grid-template-columns:34px 58px minmax(150px,1fr) 90px minmax(220px,1.45fr);align-items:center;gap:10px;width:100%;min-height:58px;position:relative;overflow:visible;border:1px dashed #536b80;border-radius:9px;padding:7px 34px 7px 7px;background:linear-gradient(145deg,rgba(16,34,55,.72),rgba(8,18,30,.72));box-sizing:border-box}.slot .slot-index{font-size:16px;font-weight:900;text-align:center;color:var(--muted)}.slot .relic-icon-cell{display:flex;align-items:center;justify-content:center;min-height:50px}.slot .relic-icon-cell .icon{width:50px;height:50px}.slot .relic-icon-cell .icon img{width:100%;height:100%;object-fit:contain;border-radius:8px;display:block}.slot .relic-name-cell{min-width:0;font-weight:800;line-height:1.2}.slot .relic-name-cell .name{font-size:12px;line-height:1.2}.slot .relic-rarity-cell{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.45px;border-radius:6px;padding:6px 7px;box-sizing:border-box}.slot.relic-common .relic-rarity-cell{color:#8ed36f;background:rgba(126,190,105,.12);border:1px solid rgba(126,190,105,.28)}.slot.relic-rare .relic-rarity-cell{color:#8fb6ff;background:rgba(91,139,218,.12);border:1px solid rgba(91,139,218,.28)}.slot.relic-epic .relic-rarity-cell{color:#c5b0e8;background:rgba(150,125,194,.14);border:1px solid rgba(150,125,194,.3)}.slot.relic-signature .relic-rarity-cell{color:#c084fc;background:rgba(192,132,252,.14);border:1px solid rgba(192,132,252,.3)}.slot .relic-desc-cell{font-size:11px;line-height:1.35;color:var(--text);min-width:0}.slot .danger{position:absolute;right:5px;top:5px;padding:2px 5px;border-radius:6px;font-size:11px;line-height:1}.slot.empty{color:var(--muted)}.add{width:100%;border-style:dashed;margin-top:2px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.toolbar button{flex:1}
+  .notes-box{width:100%;min-height:170px;resize:vertical;padding:12px;border-radius:9px;border:1px solid var(--line);background:#08121d;color:#fff;font:inherit;font-size:13px;line-height:1.5;outline:none}.notes-box:focus{border-color:var(--accent);box-shadow:0 0 0 1px rgba(242,201,76,.18)}.notes-hint{font-size:11px;color:var(--muted);margin-top:7px}.export-status{margin-top:8px;padding:9px 11px;border-radius:8px;font-size:12px;line-height:1.4;display:none;border:1px solid #465466;background:#111720;color:#cbd5e1}.export-status.error{display:block;border-color:#8b4a4a;background:#261719;color:#ffb4b4}.export-status.success{display:block;border-color:#496b4f;background:#17231a;color:#b9e6bf}.export-bar{display:flex;gap:8px;margin-top:12px}.export-bar button{flex:1}.export-primary{border-color:var(--accent);background:linear-gradient(180deg,#3c3c25,#252b22);font-weight:800} .hidden{display:none}.image-preview{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.82);display:none;align-items:center;justify-content:center;padding:14px;box-sizing:border-box}.image-preview.show{display:flex}.image-preview-box{width:min(920px,100%);height:min(94vh,100%);background:#071522;border:1px solid #315473;border-radius:14px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 70px rgba(0,0,0,.45)}.image-preview-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #274762;background:#0b1b2b}.image-preview-title{font-weight:800;color:#eef5ff}.image-preview-actions{display:flex;gap:7px;flex-wrap:wrap}.image-preview-body{flex:1;min-height:0;overflow:auto;padding:12px;text-align:center;background:#030b13}.image-preview-body img{max-width:100%;height:auto;display:inline-block;vertical-align:top;border-radius:8px;box-shadow:0 4px 24px rgba(0,0,0,.35)}.image-preview-hint{padding:8px 12px;color:#9eb4c8;font-size:11px;text-align:center;border-top:1px solid #274762}@media(max-width:620px){.image-preview{padding:0}.image-preview-box{width:100%;height:100%;max-height:none;border-radius:0;border-left:0;border-right:0}.image-preview-head{padding-top:calc(10px + env(safe-area-inset-top))}.image-preview-actions button{font-size:12px;padding:7px 9px}.image-preview-body{padding:8px}.image-preview-hint{padding-bottom:calc(8px + env(safe-area-inset-bottom))}}.modal-open{overflow:hidden!important;height:100%;touch-action:none}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.76);z-index:50;display:none;align-items:flex-end;justify-content:center;overscroll-behavior:contain;touch-action:none}.modal.open{display:flex}.modal-box{width:min(820px,100%);height:min(92vh,820px);max-height:92vh;overflow:hidden;display:flex;flex-direction:column;background:#0b1724;border:1px solid #46627b;border-radius:14px 14px 0 0;padding:14px;box-sizing:border-box;touch-action:pan-y}.modal-head{flex:0 0 auto}.modal-box>.search{flex:0 0 auto}.modal-box>#modalOptions{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:2px}.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.search{width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);background:#07111d;color:#fff;margin-bottom:10px}.option{display:grid;grid-template-columns:42px 64px minmax(150px,.9fr) 110px minmax(260px,2fr);align-items:center;gap:10px;width:100%;text-align:left;margin-bottom:7px;position:relative;overflow:hidden}.option .icon{flex:0 0 40px;width:40px;height:40px}.option.relic-option .relic-index-cell{font-size:16px;font-weight:900;text-align:center;color:var(--muted)}.option.relic-option .relic-icon-cell{display:flex;align-items:center;justify-content:center;min-height:56px}.option.relic-option .relic-icon-cell .icon{width:54px;height:54px}.option.relic-option .relic-icon-cell img{width:100%;height:100%;object-fit:contain;display:block}.option.relic-option .relic-name-cell{align-self:stretch;display:flex;align-items:center;padding:7px 8px;border-radius:7px;font-weight:800;min-width:0}.option.relic-option .relic-name-cell .name{font-weight:800;line-height:1.2;min-width:0}.option.relic-option .relic-rarity-cell{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.45px}.option.relic-option.relic-common .relic-rarity-cell{color:#8ed36f;background:rgba(126,190,105,.12);border:1px solid rgba(126,190,105,.28);border-radius:6px;padding:6px 7px}.option.relic-option.relic-rare .relic-rarity-cell{color:#8fb6ff;background:rgba(91,139,218,.12);border:1px solid rgba(91,139,218,.28);border-radius:6px;padding:6px 7px}.option.relic-option.relic-epic .relic-rarity-cell{color:#c5b0e8;background:rgba(150,125,194,.14);border:1px solid rgba(150,125,194,.3);border-radius:6px;padding:6px 7px}.option.relic-option.relic-signature .relic-rarity-cell{color:#c084fc;background:rgba(192,132,252,.14);border:1px solid rgba(192,132,252,.3);border-radius:6px;padding:6px 7px}.option.relic-option .relic-desc-cell{font-size:11px;line-height:1.35;color:var(--text);min-width:0}.option.relic-option .relic-desc-cell{white-space:normal}.option.relic-option.relic-signature .relic-name-cell{box-shadow:inset 3px 0 #c084fc}.power-table{display:grid;gap:7px;margin-bottom:8px}.power-row{display:grid;grid-template-columns:max-content max-content max-content max-content minmax(0,1fr);align-items:center;gap:10px;width:100%;text-align:left;position:relative;overflow:hidden;border:1px dashed #536b80;border-radius:9px;padding:7px 34px 7px 7px;background:linear-gradient(145deg,rgba(16,34,55,.72),rgba(8,18,30,.72));box-sizing:border-box}.power-row .power-index{font-size:16px;font-weight:900;text-align:center;color:var(--muted);min-width:62px}.power-row .power-icon{display:flex;align-items:center;justify-content:center}.power-row .power-icon img{width:54px;height:54px;object-fit:contain;display:block;border-radius:7px}.power-row .power-name{font-weight:800;line-height:1.2;min-width:max-content}.power-row .power-rarity{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.45px;white-space:nowrap}.power-row.power-common .power-rarity,.option.power-option.power-common .power-rarity{color:#8ed36f;background:rgba(126,190,105,.12);border:1px solid rgba(126,190,105,.28);border-radius:6px;padding:6px 7px}.power-row.power-rare .power-rarity,.option.power-option.power-rare .power-rarity{color:#8fb6ff;background:rgba(91,139,218,.12);border:1px solid rgba(91,139,218,.28);border-radius:6px;padding:6px 7px}.power-row.power-epic .power-rarity,.option.power-option.power-epic .power-rarity{color:#c5b0e8;background:rgba(150,125,194,.14);border:1px solid rgba(150,125,194,.3);border-radius:6px;padding:6px 7px}.power-row.power-legendary .power-rarity,.option.power-option.power-legendary .power-rarity{color:#f0a54a;background:rgba(240,165,74,.13);border:1px solid rgba(240,165,74,.3);border-radius:6px;padding:6px 7px}.power-row .power-desc{font-size:11px;line-height:1.4;color:var(--text);min-width:0}.power-row .danger{position:absolute;right:5px;top:5px;padding:2px 5px;border-radius:6px;font-size:11px;line-height:1}.option.power-option{grid-template-columns:max-content max-content max-content max-content minmax(0,1fr)}.option.power-option .power-index{font-size:16px;font-weight:900;color:var(--muted);min-width:62px;text-align:center}.option.power-option .power-icon{display:flex;align-items:center;justify-content:center}.option.power-option .power-icon img{width:54px;height:54px;object-fit:contain;display:block}.option.power-option .power-name{font-weight:800;line-height:1.2;min-width:max-content}.option.power-option .power-rarity{font-size:10px;font-weight:900;text-transform:uppercase;white-space:nowrap}.option.power-option .power-desc{font-size:11px;line-height:1.4;min-width:0}.footer-note{font-size:11px;color:var(--muted);margin-top:12px;line-height:1.45}
+  @media(max-width:620px){.star-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;padding:7px}.star{min-height:64px;padding:10px 28px}.stars{font-size:18px;letter-spacing:.25px}.star .check{right:7px;top:7px;width:17px;height:17px}.bonus-grid{grid-template-columns:repeat(var(--bonus-cols-mobile,var(--bonus-cols,5)),minmax(0,1fr));gap:5px;padding:7px}.bonus-item{min-height:58px;padding:7px}.bonus-item .bonus-number{font-size:21px}.bonus-item .check{right:6px;top:6px;width:17px;height:17px}.region-grid{justify-content:space-between;gap:2px}.region-card{min-width:40px;max-width:48px}.region-card .region-img,.region-card.region-all .region-all-icon{width:42px;height:42px}.region-grid{padding-bottom:6px}.champ-grid{grid-template-columns:repeat(3,1fr)}.item{grid-template-columns:40px 1fr auto}.icon{width:40px;height:40px}.app{padding-left:8px;padding-right:8px}.option.relic-option{grid-template-columns:34px 58px minmax(120px,1fr) 78px minmax(150px,1.4fr);}.slot{grid-template-columns:30px 50px minmax(95px,1fr) 72px minmax(110px,1.3fr);gap:6px;padding-right:30px}.slot .relic-icon-cell .icon{width:44px;height:44px}.slot .relic-rarity-cell{font-size:9px;padding:5px}.slot .relic-desc-cell{font-size:10px}.option.relic-option .relic-icon-cell .icon{width:48px;height:48px}.option.power-option{grid-template-columns:34px 48px max-content max-content minmax(0,1fr);gap:6px}.option.power-option .power-icon img{width:44px;height:44px}.option.power-option .power-index{min-width:34px;font-size:14px}.power-row{grid-template-columns:30px 48px max-content max-content minmax(0,1fr);gap:6px;padding-right:30px}.power-row .power-icon img{width:44px;height:44px}.power-row .power-index{min-width:30px;font-size:14px}.power-row .power-desc,.option.power-option .power-desc{font-size:10px}.export-bar{flex-direction:column}.brand-mark{font-size:9px;letter-spacing:1.5px}/* Mobile layout: stack Adventure controls, split Regions into two rows, hide Champion region badges. */.adventure-tools{grid-template-columns:1fr;gap:7px}.adventure-tools .adventure-row{grid-template-columns:1fr;gap:7px}.adventure-tools .adventure-row .adventure-input,.adventure-tools .adventure-row .adventure-select{width:100%}.body > .adventure-row{grid-template-columns:1fr;gap:7px}.region-grid{display:grid;grid-template-columns:repeat(6,46px);grid-auto-rows:54px;justify-content:center;align-items:center;justify-items:center;gap:4px 2px;padding:2px 0 6px}.region-card{width:46px;min-width:46px;max-width:46px;height:54px;min-height:54px}.region-card .region-img,.region-card.region-all .region-all-icon{width:42px;height:42px}.champ .region{display:none}.star{min-width:0;box-sizing:border-box;padding:10px 8px}.stars{font-size:18px;letter-spacing:0;max-width:none;overflow:visible;white-space:nowrap;line-height:1}.stars.stars-1{font-size:18px}.stars.stars-2{font-size:18px}.stars.stars-3{font-size:16px}.stars.stars-4{font-size:14px}.stars.stars-5{font-size:12px}.stars.stars-6{font-size:10px}.stars.rune-text{font-size:18px}.star .check{z-index:2}.modal{align-items:flex-end}.modal-box{width:100%;height:94vh;max-height:94vh;min-height:0;padding:12px 10px calc(12px + env(safe-area-inset-bottom));border-radius:14px 14px 0 0}.modal-head{position:relative;z-index:5;background:#0b1724;padding-bottom:9px}.modal-head button{flex:0 0 auto}.modal-close{min-width:68px;padding:7px 10px;font-size:12px;font-weight:800}.modal-close span{display:inline}.search{position:relative;z-index:4;background:#07111d;margin-bottom:10px}.option.relic-option{grid-template-columns:32px 48px minmax(0,1fr);grid-template-rows:auto auto auto;gap:6px 7px;padding:8px;overflow:visible;align-items:start}.option.relic-option .relic-index-cell{grid-column:1;grid-row:1 / span 2;padding-top:7px}.option.relic-option .relic-icon-cell{grid-column:2;grid-row:1 / span 2;min-height:48px}.option.relic-option .relic-icon-cell .icon{width:44px;height:44px}.option.relic-option .relic-name-cell{grid-column:3;grid-row:1;align-self:start;padding:5px 7px;min-width:0}.option.relic-option .relic-rarity-cell{grid-column:3;grid-row:2;justify-self:start;align-self:start;padding:4px 6px!important}.option.relic-option .relic-desc-cell{grid-column:1 / -1;grid-row:3;width:100%;box-sizing:border-box;font-size:11px;line-height:1.5;padding:7px 4px 3px;white-space:normal;overflow:visible;overflow-wrap:anywhere;word-break:break-word;border-top:1px solid rgba(72,130,166,.22);margin-top:2px}.option.relic-option .relic-name-cell .name{white-space:normal;overflow-wrap:anywhere;word-break:break-word}.option.relic-option .relic-desc-cell{min-width:0}.option.relic-option .danger{z-index:3}.slot{grid-template-columns:30px 48px minmax(0,1fr);grid-template-rows:auto auto auto;gap:6px 7px;padding:8px 30px 8px 7px;align-items:start;overflow:visible;min-height:0}.slot .slot-index{grid-column:1;grid-row:1 / span 2;padding-top:7px}.slot .relic-icon-cell{grid-column:2;grid-row:1 / span 2;min-height:48px}.slot .relic-icon-cell .icon{width:44px;height:44px}.slot .relic-name-cell{grid-column:3;grid-row:1;min-width:0;align-self:start;padding:5px 7px}.slot .relic-name-cell .name{white-space:normal;overflow-wrap:anywhere;word-break:break-word}.slot .relic-rarity-cell{grid-column:3;grid-row:2;justify-self:start;padding:4px 6px;font-size:9px}.slot .relic-desc-cell{grid-column:1 / -1;grid-row:3;width:100%;box-sizing:border-box;font-size:10px;line-height:1.5;min-width:0;padding:7px 4px 2px;white-space:normal;overflow:visible;overflow-wrap:anywhere;word-break:break-word;border-top:1px solid rgba(72,130,166,.22);margin-top:2px}.slot .danger{z-index:3}.option.power-option{grid-template-columns:32px 48px minmax(0,1fr);gap:7px}.option.power-option .power-index{grid-column:1;min-width:32px}.option.power-option .power-icon{grid-column:2}.option.power-option .power-name{grid-column:3;min-width:0;white-space:normal}.option.power-option .power-rarity{grid-column:3;grid-row:2;justify-self:start}.option.power-option .power-desc{grid-column:1 / -1;grid-row:3;line-height:1.45}.}
+
+/* v96: Relic description is ALWAYS the fifth/final column on desktop. */
+.option.relic-option{grid-template-columns:42px 64px minmax(150px,.9fr) 110px minmax(260px,2fr)}
+.option.relic-option .relic-desc-cell{grid-column:5;grid-row:1;align-self:center;white-space:normal;overflow-wrap:anywhere;word-break:break-word}
+@media(max-width:620px){
+  .option.relic-option{grid-template-columns:32px 48px minmax(0,1fr);grid-template-rows:auto auto auto}
+  .option.relic-option .relic-desc-cell{grid-column:1 / -1;grid-row:3}
+  .slot{grid-template-columns:30px 48px minmax(0,1fr);grid-template-rows:auto auto auto}
+  .slot .relic-desc-cell{grid-column:1 / -1;grid-row:3}
+}
+
+  #exportCapture{box-sizing:border-box;color:var(--text);background:#071522;padding:14px 12px 28px;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}
+  #exportCapture section{margin-top:15px}
+  #exportCapture .export-adventure-tools{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:8px;width:100%;margin-left:0}
+  #exportCapture .export-selected-value{height:34px;display:flex;align-items:center;padding:6px 10px;border-radius:9px;border:1px solid #315473;background:#0a1827;color:var(--text);font:600 13px Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;box-sizing:border-box}
+  #exportCapture .export-selected-value.export-difficulty{justify-content:center;color:var(--accent);font-weight:800}
+  #exportCapture .region-grid{justify-content:flex-start;gap:6px}
+  #exportCapture .region-card{flex:0 0 54px}
+  #exportCapture .champ-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #exportCapture .champ{cursor:default}
+  #exportCapture .star-grid,#exportCapture .bonus-grid{overflow:visible}
+  #exportCapture .star .check,#exportCapture .bonus-item .check{display:none}
+  #exportCapture .notes-box{min-height:170px;white-space:pre-wrap}
+  #exportCapture .export-notes-content{min-height:120px;padding:12px;border-radius:9px;border:1px solid var(--line);background:#08121d;color:#fff;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="app-header">
+  <div class="brand-mark">LEGENDS OF RUNETERRA <span>✦</span> PATH OF CHAMPIONS</div>
+  <h1>LoR PoC Build Builder</h1>
+  <div class="sub">Build a Path of Champions setup, then export a phone-friendly PNG.</div>
+</header>
+
+<section id="adventureSection"><div class="title"><span>Adventure</span><div class="adventure-tools"><select id="adventureCategory" class="adventure-select" aria-label="Adventure category"><option value="World Adventures">World Adventures</option><option value="Nightmare Adventures">Nightmare Adventures</option><option value="Event Campaigns">Event Campaigns</option></select><div class="adventure-row"><input id="adventureInput" class="adventure-input" type="text" list="adventureList" autocomplete="off" spellcheck="false" placeholder="Type adventure name..." aria-label="Adventure name"><select id="adventureSelect" class="adventure-select" aria-label="Choose adventure"><option value="">Select adventure...</option></select></div></div></div><div class="body"><div class="adventure-row"><div class="adventure-empty" id="adventureStatus">Loading live adventures…</div><div class="adventure-difficulty" id="adventureDifficulty">—</div></div><datalist id="adventureList"></datalist></div></section>
+
+<section><div class="title">Region <small id="regionLabel">Bilgewater</small></div><div class="body"><div class="region-grid" id="regions"></div></div></section>
+
+<section><div class="title"><span>Champion</span><div class="champ-title-tools"><div class="champ-search-wrap"><input id="champSearch" class="champ-search" type="search" autocomplete="off" spellcheck="false" placeholder="Search champion..." aria-label="Search champion"><button id="champSearchClear" class="champ-search-clear" type="button" aria-label="Clear champion search">×</button></div><small id="champLabel" class="champ-selected-label">Illaoi</small></div></div><div class="body"><div class="champ-grid" id="champions"></div></div></section>
+
+<section><div class="title"><span>Star Powers</span><div class="champ-title-tools"><small>tick to include</small><button class="select-all-btn" type="button" onclick="toggleAllSet('stars')">Select All</button></div></div><div class="star-grid" id="stars"></div></section>
+
+<section><div class="title"><span>Bonus Stars</span><div class="champ-title-tools"><small>tick to include</small><button class="select-all-btn" type="button" onclick="toggleAllSet('bonus')">Select All</button></div></div><div class="bonus-grid" id="bonus"></div></section>
+
+<section><div class="title">Relics <small id="relicCount">0 / 3</small></div><div class="body" id="relicSlots"></div></section>
+
+<section><div class="title">Powers <small id="powerCount">0 selected</small></div><div class="body" id="powerList"></div></section>
+
+<section id="notesSection"><div class="title">Player Notes <small>write anything you want</small></div><div class="body"><textarea id="playerNotes" class="notes-box" placeholder="Write your build notes here...
+
+Example:
+- Why I chose these relics
+- What this build is for
+- Playstyle / reminders
+- Personal testing notes"></textarea><div class="notes-hint">These notes will also be included in the exported PNG.</div></div></section>
+<div class="export-bar"><button class="export-primary" onclick="exportPNG()">📷 Save Build Image</button><button onclick="shareBuildLink()">🔗 Share Build Link</button><button onclick="resetBuild()">Reset</button></div><div id="exportStatus" class="export-status" role="status"></div>
+
+<div class="footer-note">
+  <span id="dataStatus">Loading live LoR data…</span>
+  <br>
+  <span>Image &amp; data sources: 
+    <a href="https://wiki.leagueoflegends.com/en-us/LoR:Legends_of_Runeterra" target="_blank" rel="noopener noreferrer">League of Legends Wiki</a>
+    ·
+    <a href="https://runeterra.ar/" target="_blank" rel="noopener noreferrer">Runeterra AR</a>
+  </span>
+  <br>
+  <span>The builder keeps the last working dataset as a fallback if a source is temporarily unavailable.</span>
+</div>
+</div>
+
+<div class="image-preview" id="imagePreview" aria-hidden="true"><div class="image-preview-box"><div class="image-preview-head"><div class="image-preview-title">Build Image</div><div class="image-preview-actions"><button type="button" onclick="downloadPreviewImage()">⬇ Save PNG</button><button type="button" onclick="sharePreviewImage()">↗ Share</button><button type="button" onclick="closeImagePreview()">× Close</button></div></div><div class="image-preview-body"><img id="imagePreviewImg" alt="LoR PoC build image preview"></div><div class="image-preview-hint">Desktop: click “Save PNG”. Mobile: use “Share” → Save Image, or press and hold the image.</div></div></div>
+
+<div class="modal" id="modal"><div class="modal-box"><div class="modal-head"><b id="modalTitle">Select</b><button class="modal-close" type="button" onclick="closeModal()" aria-label="Close">× <span>Close</span></button></div><input class="search" id="modalSearch" placeholder="Search name or description..." oninput="renderModalOptions()"><div id="modalOptions"></div></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
+<script>
+let DATA={
+ regions:[
+  {name:'Bandle City',img:'https://wiki.leagueoflegends.com/en-us/images/thumb/Bandle_City_LoR_Region.png/40px-Bandle_City_LoR_Region.png'},
+  {name:'Bilgewater',img:'https://wiki.leagueoflegends.com/en-us/images/thumb/Bilgewater_LoR_Region.png/40px-Bilgewater_LoR_Region.png'},
+  {name:'Demacia',img:'https://wiki.leagueoflegends.com/en-us/images/thumb/Demacia_LoR_Region.png/40px-Demacia_LoR_Region.png'},
+  {name:'Freljord',img:'https://wiki.leagueoflegends.com/en-us/images/thumb/Freljord_LoR_Region.png/40px-Freljord_LoR_Region.png'},
+  {name:'Ionia',img:'https://wiki.leagueoflegends.com/en-us/images/thumb/Ionia_LoR_Region.png/40px-Ionia_LoR_Region.png'},
+  {name:'Noxus',img:'https://wiki.leagueoflegends.com/en-us/images/thumb/Noxus_LoR_Region.png/40px-Noxus_LoR_Region.png'},
+  {name:'Piltover & Zaun',img:'https://wiki.leagueoflegends.com/en-us/images/thumb/Piltover_Zaun_LoR_Region.png/40px-Piltover_Zaun_LoR_Region.png'},
+  {name:'Shadow Isles',img:'https://wiki.leagueoflegends.com/en-us/images/thumb/Shadow_Isles_LoR_Region.png/40px-Shadow_Isles_LoR_Region.png'},
+  {name:'Shurima',img:'https://wiki.leagueoflegends.com/en-us/images/thumb/Shurima_LoR_Region.png/40px-Shurima_LoR_Region.png'},
+  {name:'Targon',img:'https://wiki.leagueoflegends.com/en-us/images/thumb/Targon_LoR_Region.png/40px-Targon_LoR_Region.png'},
+  {name:'Runeterra',img:'https://wiki.leagueoflegends.com/en-us/images/thumb/Runeterra_region.png/40px-Runeterra_region.png'},
+  {name:'Spirit Blossom',img:'https://wiki.leagueoflegends.com/en-us/images/thumb/Spirit_Blossom_LoR_Region.png/40px-Spirit_Blossom_LoR_Region.png'}
+ ],
+ champions:[],
+ stars:[],
+ bonus:[],
+ adventures:{'World Adventures':[],'Nightmare Adventures':[],'Event Campaigns':[]},
+  eventCampaigns:{},
+ relics:[],
+ powers:[]
+};
+const SOURCES={
+  wikiConstellation:'https://wiki.leagueoflegends.com/en-us/LoR:Constellation',
+  wikiAdventures:'https://wiki.leagueoflegends.com/en-us/LoR:Adventures',
+  wikiApi:'https://wiki.leagueoflegends.com/en-us/api.php',
+  relics:'https://runeterra.ar/the-path-of-champions/relics',
+  wikiRelics:'https://wiki.leagueoflegends.com/en-us/LoR:Relics#Commons',
+  wikiPowers:'https://wiki.leagueoflegends.com/en-us/LoR:Powers',
+  wikiPowerCategory:'Category:PoC_Power',
+  wikiPowerLetterBase:'https://wiki.leagueoflegends.com/en-us/LoR:'
+};
+const DATA_CACHE_KEY='lor-poc-live-data-v104';
+const LEGACY_CACHE_KEYS=['lor-poc-live-data-v95','lor-poc-live-data-v94','lor-poc-live-data-v86','lor-poc-live-data-v81','lor-poc-live-data-v66','lor-poc-live-data-v80'];
+const DATA_CACHE_TS='lor-poc-live-data-ts-v104';
+
+function setDataStatus(msg){
+  const n=el('dataStatus');
+  if(n)n.textContent=msg;
+}
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function normalizeName(v){return String(v||'').replace(/\s+/g,' ').trim();}
+function regionRegex(name){return new RegExp('\\b'+name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','i')}
+const CORS_PROXIES=[
+  url=>jinaProxy(url),
+  url=>`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url=>`https://corsproxy.io/?url=${encodeURIComponent(url)}`
+];
+function jinaProxy(url){return `https://r.jina.ai/http://${String(url).replace(/^https?:\/\//i,'')}`;}
+const POWER_PROXIES=[
+  url=>jinaProxy(url),
+  url=>`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url=>`https://corsproxy.io/?url=${encodeURIComponent(url)}`
+];
+async function fetchPowerSource(url,timeout=18000){
+  const targets=[url,...POWER_PROXIES.map(fn=>fn(url))];
+  let lastErr=null;
+  for(const target of targets){
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),timeout);
+    try{
+      const r=await fetch(target,{signal:ctrl.signal,mode:'cors',cache:'no-store'});
+      if(!r.ok)throw new Error(`${r.status} ${r.statusText}`);
+      const text=await r.text();
+      if(text&&text.length>40)return text;
+      throw new Error('Empty Power source response');
+    }catch(e){lastErr=e}finally{clearTimeout(timer)}
+  }
+  throw lastErr||new Error('All Power source attempts failed');
+}
+async function fetchText(url,timeout=15000){
+  const targets=[url,...CORS_PROXIES.map(fn=>fn(url))];
+  let lastErr=null;
+  for(const target of targets){
+    const ctrl=new AbortController();
+    const timer=setTimeout(()=>ctrl.abort(),timeout);
+    try{
+      const r=await fetch(target,{signal:ctrl.signal,mode:'cors',cache:'no-store'});
+      if(!r.ok)throw new Error(`${r.status} ${r.statusText}`);
+      const text=await r.text();
+      if(text&&text.length>40)return text;
+      throw new Error('Empty response');
+    }catch(e){lastErr=e}finally{clearTimeout(timer)}
+  }
+  throw lastErr||new Error('All fetch attempts failed');
+}
+async function fetchJSON(url,timeout=12000){
+  const text=await fetchText(url,timeout);
+  return JSON.parse(text);
+}
+function firstText(elm){return normalizeName(elm?.textContent||'')}
+function parseRuneterraCards(html,type){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const out=[]; const seen=new Set();
+  const rarityRe=/\b(COMMON|RARE|EPIC|LEGENDARY)\b/i;
+  const imgs=[...doc.querySelectorAll('img[alt]')];
+  for(const img of imgs){
+    let name=normalizeName(img.getAttribute('alt'));
+    if(!name||/^(image|logo|icon|new|updated)$/i.test(name)||seen.has(name.toLowerCase()))continue;
+    let node=img.closest('article,li,[class*="card"],[class*="item"],[class*="power"]')||img.parentElement;
+    let tries=0, block='';
+    while(node&&tries<6){
+      block=firstText(node);
+      if(block.length>=name.length+5 && block.length<1800 && rarityRe.test(block))break;
+      node=node.parentElement; tries++;
+    }
+    if(!block||block.length>1800||!rarityRe.test(block))continue;
+    const m=block.match(rarityRe); const rarity=m?m[1].toUpperCase():'';
+    let desc=block;
+    desc=desc.replace(name,'').replace(rarity,'').replace(/^New\s*/i,'').replace(/^Updated\s*/i,'').trim();
+    desc=normalizeName(desc).replace(/\s{2,}/g,' ');
+    if(!desc)continue;
+    // Keep the actual Runeterra AR CDN asset. Prefer the original `src`/lazy
+    // source instead of a resized/currentSrc variant so the builder uses the
+    // same full relic artwork shown on Runeterra AR.
+    const rawSources=[
+      img.getAttribute('data-src'),
+      img.getAttribute('data-original'),
+      img.getAttribute('data-lazy-src'),
+      img.getAttribute('src'),
+      img.currentSrc
+    ].filter(Boolean);
+    const srcset=img.getAttribute('srcset')||'';
+    if(srcset)rawSources.push(...srcset.split(',').map(x=>x.trim().split(/\s+/)[0]).filter(Boolean));
+    let src=rawSources.find(v=>/cdn\.runeterra\.ar\//i.test(v))||rawSources[0]||'';
+    if(src && !/^https?:\/\//i.test(src))src=new URL(src,location.href).href;
+
+    // The CDN filename contains the stable relic code (for example R0030),
+    // which is also useful for exact searching/debugging.
+    const idMatch=src.match(/\/(R\d{4})\.(?:webp|png|jpg|jpeg)(?:\?|$)/i);
+    const id=idMatch?idMatch[1].toUpperCase():'';
+    seen.add(name.toLowerCase());
+    out.push({name,rarity,icon:src,desc,source:type,id});
+  }
+  return out;
+}
+function adventureHeadingForTable(doc,table){
+  const heads=[...doc.querySelectorAll('h2,h3,h4,h5,h6')];
+  let best=null;
+  for(const h of heads){
+    const pos=h.compareDocumentPosition(table);
+    if(pos & Node.DOCUMENT_POSITION_FOLLOWING) best=h;
+  }
+  return best;
+}
+function adventureHeadingText(h){return normalizeName((h?.querySelector?.('.mw-headline')||h)?.textContent||'').replace(/\[edit\]/ig,'').trim()}
+function adventureNameFromCell(cell){
+  if(!cell)return '';
+  // Wiki adventure tables often put the visible name inside a linked image/card.
+  // In that case textContent can be empty; recover the name from the link title or URL.
+  const links=[...cell.querySelectorAll('a[href]')];
+  for(const a of links){
+    const txt=normalizeName(a.textContent);
+    if(txt && txt.length<120)return txt;
+    const title=normalizeName(a.getAttribute('title')||a.getAttribute('aria-label')||'');
+    if(title && !/^edit$/i.test(title) && title.length<120)return title;
+    const href=a.getAttribute('href')||'';
+    const m=href.match(/\/LoR:(?:World_Adventures|Nightmare_Adventures|Event_Campaigns)\/([^?#/]+)/i);
+    if(m){
+      const slug=decodeURIComponent(m[1]).replace(/_/g,' ');
+      if(slug)return normalizeName(slug);
+    }
+  }
+  const img=cell.querySelector('img[alt],img[title]');
+  const alt=normalizeName(img?.getAttribute('alt')||img?.getAttribute('title')||'');
+  if(alt && !/^image$/i.test(alt))return alt;
+  return normalizeName(cell.textContent).replace(/\[edit\]/ig,'').trim();
+}
+function adventureDifficultyFromCell(cell){
+  if(!cell)return '';
+  const txt=normalizeName(cell.textContent).replace(/\s+/g,' ').trim();
+  if(txt)return txt;
+  const title=normalizeName(cell.getAttribute('title')||cell.getAttribute('aria-label')||'');
+  if(title)return title;
+  const attrs=[...cell.querySelectorAll('img[alt],img[title],a[title],a[aria-label]')].flatMap(x=>[x.getAttribute('alt'),x.getAttribute('title'),x.getAttribute('aria-label')]).map(normalizeName);
+  return attrs.find(x=>/\b\d+(?:\.\d+)?\s*Stars?\b/i.test(x))||'';
+}
+function parseAdventureTable(table){
+  const rows=[...table.querySelectorAll('tr')];
+  if(!rows.length)return [];
+  let headerIndex=-1,adventureCol=-1,difficultyCol=-1;
+  for(let i=0;i<Math.min(rows.length,8);i++){
+    const cells=[...rows[i].querySelectorAll('th,td')];
+    const labels=cells.map(c=>normalizeName(c.textContent).toLowerCase());
+    const a=labels.findIndex(x=>x==='adventure'||x.startsWith('adventure '));
+    const d=labels.findIndex(x=>x==='difficulty'||x.startsWith('difficulty '));
+    if(a!==-1&&d!==-1){headerIndex=i;adventureCol=a;difficultyCol=d;break}
+  }
+  if(headerIndex<0)return [];
+  const out=[];const seen=new Set();
+  for(let i=headerIndex+1;i<rows.length;i++){
+    const cells=[...rows[i].querySelectorAll('th,td')];
+    if(cells.length<=Math.max(adventureCol,difficultyCol))continue;
+    const name=adventureNameFromCell(cells[adventureCol]);
+    const difficulty=adventureDifficultyFromCell(cells[difficultyCol]);
+    if(!name||!difficulty||/^adventure$/i.test(name)||/^difficulty$/i.test(difficulty))continue;
+    // Ignore non-adventure navigation links that happen to be in the same cell.
+    if(name.length>120)continue;
+    const key=name.toLocaleLowerCase();
+    if(seen.has(key))continue;
+    seen.add(key);out.push({name,difficulty});
+  }
+  return out;
+}
+function adventureTableCategory(doc,table){
+  const h=adventureHeadingForTable(doc,table);
+  const ht=adventureHeadingText(h).toLocaleLowerCase();
+  if(ht.includes('world adventures'))return 'World Adventures';
+  if(ht.includes('nightmare adventures'))return 'Nightmare Adventures';
+  if(ht.includes('event campaigns'))return 'Event Campaigns';
+  // Fallback: inspect the nearest preceding text for tab/section labels.
+  let node=table.previousElementSibling,steps=0;
+  while(node&&steps<12){
+    const t=normalizeName(node.textContent).toLocaleLowerCase();
+    if(t.includes('world adventures'))return 'World Adventures';
+    if(t.includes('nightmare adventures'))return 'Nightmare Adventures';
+    if(t.includes('event campaigns'))return 'Event Campaigns';
+    node=node.previousElementSibling;steps++;
+  }
+  return '';
+}
+function headingLevel(h){return Number(String(h?.tagName||'').replace(/^H/i,''))||99}
+function headingSectionTables(doc,heading){
+  if(!heading)return [];
+  const level=headingLevel(heading),out=[];
+  let node=heading.nextElementSibling;
+  while(node){
+    if(/^H[1-6]$/i.test(node.tagName) && headingLevel(node)<=level)break;
+    if(node.matches?.('table'))out.push(node);
+    if(node.querySelectorAll)out.push(...node.querySelectorAll('table'));
+    node=node.nextElementSibling;
+  }
+  return [...new Set(out)];
+}
+function eventTabPanelElements(doc){
+  const out=[];const seen=new Set();
+  const selectors=[
+    '.tabbertab[title]','.tabbertab[data-title]','.tabbertab[data-tab-title]',
+    '[role="tabpanel"][data-title]','[role="tabpanel"][aria-label]','[role="tabpanel"][data-tab-title]',
+    '[data-mw-tab-target]','[data-tab-target]'
+  ];
+  for(const panel of doc.querySelectorAll(selectors.join(','))){
+    const raw=panel.getAttribute('title')||panel.getAttribute('data-title')||panel.getAttribute('data-tab-title')||panel.getAttribute('aria-label')||'';
+    const name=normalizeName(raw);
+    if(!name||name.length>80)continue;
+    const key=name.toLocaleLowerCase();
+    if(seen.has(key))continue;
+    if(![...panel.querySelectorAll('table')].some(t=>parseAdventureTable(t).length>0))continue;
+    seen.add(key);out.push({name,panel});
+  }
+
+  // MediaWiki can return the tab navigation separately from its tab panels.
+  // In that form, find an element whose visible text is exactly the tab name,
+  // then climb to the nearest ancestor that contains an Adventure table.
+  for(const name of EVENT_CAMPAIGN_CATEGORIES){
+    const key=name.toLocaleLowerCase();
+    if(seen.has(key))continue;
+    const candidates=[...doc.querySelectorAll('a,button,[role="tab"],li,span,div')]
+      .filter(x=>normalizeName(x.textContent||'').toLocaleLowerCase()===key);
+    for(const label of candidates){
+      let node=label,depth=0;
+      while(node&&depth<7){
+        const tables=[...node.querySelectorAll?.('table')||[]].filter(t=>parseAdventureTable(t).length>0);
+        if(tables.length){
+          seen.add(key);out.push({name,panel:node});break;
+        }
+        node=node.parentElement;depth++;
+      }
+      if(seen.has(key))break;
+    }
+  }
+  return out;
+}
+const EVENT_CAMPAIGN_CATEGORIES=[
+  'Legends of Arcane',
+  'Titans of Runeterra',
+  'Rogues of Runeterra',
+  'Spirit Blossom',
+  'Teamfight Adventures'
+];
+// These are source-page hints only (no adventure data is hard-coded). If the
+// main Adventures page renders only one active tab, fetch each campaign's own
+// Wiki page as an additional live source so no tab's adventure table is lost.
+const EVENT_CAMPAIGN_PAGE_HINTS={
+  'Legends of Arcane':'https://wiki.leagueoflegends.com/en-us/LoR:Legends_of_Arcane',
+  'Titans of Runeterra':'https://wiki.leagueoflegends.com/en-us/LoR:Titans_of_Runeterra',
+  'Rogues of Runeterra':'https://wiki.leagueoflegends.com/en-us/LoR:Rogues_of_Runeterra',
+  'Spirit Blossom':'https://wiki.leagueoflegends.com/en-us/LoR:Spirit_Blossom',
+  'Teamfight Adventures':'https://wiki.leagueoflegends.com/en-us/LoR:Teamfight_Adventures'
+};
+function eventCampaignTabLinks(doc){
+  const out=[];const seen=new Set();
+  for(const item of eventTabPanelElements(doc)){
+    const key=item.name.toLocaleLowerCase();
+    if(seen.has(key))continue;
+    seen.add(key);out.push({name:item.name,href:item.panel?.id?('#'+item.panel.id):''});
+  }
+  // Keep these five known tab labels as lookup targets. They are NOT shown as
+  // a second UI category selector; their rows are merged into one Event list.
+  for(const name of EVENT_CAMPAIGN_CATEGORIES){
+    const key=name.toLocaleLowerCase();
+    if(!seen.has(key)){seen.add(key);out.push({name,href:''});}
+  }
+  return out;
+}
+
+function eventCampaignPageUrl(href){
+  if(!href)return '';
+  if(/^https?:\/\//i.test(href))return href;
+  if(href.startsWith('//'))return 'https:'+href;
+  if(href.startsWith('/'))return 'https://wiki.leagueoflegends.com'+href;
+  return new URL(href,SOURCES.wikiAdventures).href;
+}
+function parseEventCampaignTables(html){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const out=[];const seen=new Set();
+  for(const table of doc.querySelectorAll('table')){
+    const rows=parseAdventureTable(table);
+    for(const row of rows){
+      if(!/\bstars?\b/i.test(String(row.difficulty||'')))continue;
+      const key=adventureIdentityKey(row);if(!key||seen.has(key))continue;
+      seen.add(key);out.push(row);
+    }
+  }
+  return out;
+}
+function eventCampaignTablesFromMainPage(doc,tabName){
+  const target=normalizeName(tabName).toLocaleLowerCase();
+  if(!target)return [];
+  const out=[];const seen=new Set();
+  const addTables=(tables)=>{
+    for(const table of tables||[]){
+      for(const row of parseAdventureTable(table)){
+        if(!/\bstars?\b/i.test(String(row.difficulty||'')))continue;
+        const key=adventureIdentityKey(row);
+        if(!key||seen.has(key))continue;
+        seen.add(key);out.push(row);
+      }
+    }
+  };
+  const isTargetText=(v)=>normalizeName(v).toLocaleLowerCase()===target;
+
+  // 1) Explicit Tabber/tabpanel containers. Do not stop at the first match:
+  // some Wiki pages contain more than one panel/container for the same tab.
+  const panelSelectors=[
+    '.tabbertab[title]','.tabbertab[data-title]','.tabbertab[data-tab-title]',
+    '.tabber__panel','.tabber__tab-panel','.tabber-panel',
+    '[role="tabpanel"]','[data-tabber-panel]','[data-tabber-pane]',
+    '[data-mw-tab-target]','[data-tab-target]'
+  ];
+  for(const panel of doc.querySelectorAll(panelSelectors.join(','))){
+    const attrs=[
+      panel.getAttribute('title'),panel.getAttribute('data-title'),panel.getAttribute('data-tab-title'),
+      panel.getAttribute('aria-label'),panel.getAttribute('data-tabber-panel'),panel.getAttribute('data-tabber-pane'),
+      panel.getAttribute('data-tabber-tab'),panel.getAttribute('data-tab-target'),panel.getAttribute('data-mw-tab-target')
+    ].filter(Boolean);
+    const labelled=attrs.some(isTargetText);
+    if(labelled)addTables(panel.querySelectorAll('table'));
+  }
+
+  // 2) Tab controls that point to their content panel.
+  for(const control of doc.querySelectorAll('[role="tab"],[data-tabber-tab],[data-tab-target],[data-mw-tab-target],a[aria-controls],button[aria-controls]')){
+    const label=normalizeName(control.textContent||control.getAttribute('aria-label')||control.getAttribute('title')||'');
+    if(!isTargetText(label))continue;
+    const ids=[control.getAttribute('aria-controls'),control.getAttribute('data-tabber-target'),control.getAttribute('data-tab-target'),control.getAttribute('data-mw-tab-target')].filter(Boolean);
+    for(const idRaw of ids){
+      const id=String(idRaw).replace(/^#/,'');
+      const panel=doc.getElementById(id);
+      if(panel)addTables(panel.querySelectorAll('table'));
+    }
+  }
+
+  // 3) aria-labelledby: panel -> tab label. This is common in accessible tab markup.
+  for(const panel of doc.querySelectorAll('[role="tabpanel"][aria-labelledby]')){
+    const ids=(panel.getAttribute('aria-labelledby')||'').split(/\s+/).filter(Boolean);
+    if(ids.some(id=>isTargetText(doc.getElementById(id)?.textContent||'')))addTables(panel.querySelectorAll('table'));
+  }
+
+  // 4) Attribute/value scan. MediaWiki/Tabber versions differ, so accept any
+  // element whose attribute value is exactly the tab label, but only collect
+  // from tab-like elements or their descendants.
+  const attrNames=['title','data-title','data-tab-title','data-tabber-tab','data-tabber-panel','data-tabber-pane','aria-label','aria-labelledby'];
+  for(const node of doc.querySelectorAll('*')){
+    let hit=false;
+    for(const a of attrNames){
+      const v=node.getAttribute?.(a)||'';
+      if(a==='aria-labelledby'){
+        if(v.split(/\s+/).some(id=>isTargetText(doc.getElementById(id)?.textContent||''))){hit=true;break;}
+      }else if(isTargetText(v)){hit=true;break;}
+    }
+    if(hit)addTables(node.querySelectorAll?.('table')||[]);
+  }
+
+  // 5) Heading fallback, if the event tab is rendered as a normal section.
+  const headings=[...doc.querySelectorAll('h2,h3,h4,h5,h6')];
+  for(const h of headings){
+    if(isTargetText(adventureHeadingText(h)))addTables(headingSectionTables(doc,h));
+  }
+
+  return out;
+}
+
+function parseEventCampaignBucketsFromMainPage(doc){
+  const result={};
+  for(const name of EVENT_CAMPAIGN_CATEGORIES){
+    const rows=eventCampaignTablesFromMainPage(doc,name);
+    if(rows.length)result[name]=rows;
+  }
+  return result;
+}
+
+function parseAdventures(html){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const cats=['World Adventures','Nightmare Adventures','Event Campaigns'];
+  const out={"World Adventures":[],"Nightmare Adventures":[],"Event Campaigns":[]};
+  const tables=[...doc.querySelectorAll('table')];
+  for(const table of tables){
+    const category=adventureTableCategory(doc,table);
+    if(!category)continue;
+    const rows=parseAdventureTable(table);
+    if(rows.length)out[category].push(...rows);
+  }
+  for(const cat of cats){
+    const seen=new Set();
+    out[cat]=out[cat].filter(x=>{const k=x.name.toLocaleLowerCase();if(seen.has(k))return false;seen.add(k);return true});
+  }
+  const total=cats.reduce((n,c)=>n+out[c].length,0);
+  if(total<3)throw new Error(`Adventure parser found too few records (${total})`);
+  return {adventures:out,eventTabs:eventCampaignTabLinks(doc)};
+}
+async function loadWikiAdventures(){
+  const page='LoR:Adventures';
+  let html='';let parsed=null;let lastErr=null;
+  try{html=await fetchText(SOURCES.wikiAdventures,20000)}catch(e){lastErr=e}
+  if(html){try{parsed=parseAdventures(html)}catch(e){lastErr=e}}
+  if(!parsed){
+    try{
+      const json=await fetchJSON(wikiApiUrl({page,prop:'text'}),20000);
+      const apiHtml=json?.parse?.text?.['*']||'';
+      if(apiHtml)parsed=parseAdventures(apiHtml);
+    }catch(e){lastErr=e}
+  }
+  if(!parsed)throw lastErr||new Error('Adventure source unavailable');
+
+  const eventGroups={};
+  const mainDoc=html?new DOMParser().parseFromString(html,'text/html'):null;
+
+  // Always try all five Ongoing Events tabs from the main page, rather than
+  // relying on only the currently visible tab. This is the main fix for the
+  // previously incomplete Event Campaign list.
+  if(mainDoc){
+    const allMainGroups=parseEventCampaignBucketsFromMainPage(mainDoc);
+    for(const [name,rows] of Object.entries(allMainGroups))eventGroups[name]=rows;
+  }
+
+  // Fetch every known campaign source page as a second live-source pass.
+  // This fixes the case where MediaWiki sends only the currently active tab in
+  // the main page HTML. Failed/removed pages are simply skipped.
+  for(const name of EVENT_CAMPAIGN_CATEGORIES){
+    const url=EVENT_CAMPAIGN_PAGE_HINTS[name];
+    if(!url)continue;
+    try{
+      const rows=parseEventCampaignTables(await fetchText(url,16000));
+      if(rows.length){
+        const merged=[...(eventGroups[name]||[]),...rows];
+        const seen=new Set();
+        eventGroups[name]=merged.filter(r=>{const k=adventureIdentityKey(r);if(!k||seen.has(k))return false;seen.add(k);return true});
+      }
+    }catch(e){}
+  }
+
+  // If the Wiki exposes dedicated event pages through tab links, merge those too.
+  for(const tab of (parsed.eventTabs||[])){
+    const url=eventCampaignPageUrl(tab.href);
+    if(!url || !/\/LoR:Event_Campaigns\//i.test(url))continue;
+    try{
+      const rows=parseEventCampaignTables(await fetchText(url,16000));
+      if(rows.length){
+        const key=Object.keys(eventGroups).find(k=>k.toLocaleLowerCase()===tab.name.toLocaleLowerCase())||tab.name;
+        const merged=[...(eventGroups[key]||[]),...rows];
+        const seen=new Set();
+        eventGroups[key]=merged.filter(r=>{const k=adventureIdentityKey(r);if(!k||seen.has(k))return false;seen.add(k);return true});
+      }
+    }catch(e){}
+  }
+
+  // Keep only the five intended Event Campaign tabs. Champion Campaigns and
+  // any other adventure section are deliberately excluded from the builder.
+  const filtered={};
+  for(const name of EVENT_CAMPAIGN_CATEGORIES){
+    const key=Object.keys(eventGroups).find(k=>k.toLocaleLowerCase()===name.toLocaleLowerCase());
+    if(key&&eventGroups[key]?.length)filtered[name]=eventGroups[key];
+  }
+  return {...parsed.adventures,eventCampaigns:filtered};
+}
+
+
+const RELIC_WIKI_CATEGORIES=['Commons','Rares','Epics','Signature Epics'];
+function relicNameFromCell(cell){
+  if(!cell)return '';
+  const links=[...cell.querySelectorAll('a[href]')];
+  for(const a of links){
+    const txt=normalizeName(a.textContent||'');
+    if(txt && txt.length<120 && !/^(edit|commons|rares|epics|signature epics)$/i.test(txt))return txt;
+    const title=normalizeName(a.getAttribute('title')||a.getAttribute('aria-label')||'');
+    if(title && title.length<120 && !/^edit$/i.test(title))return title;
+  }
+  const lines=cellLines(cell);
+  const useful=lines.find(x=>x.length<120 && !/^(relic|description|name)$/i.test(x));
+  return useful||cellPlain(cell);
+}
+function relicWikiCategoryFromText(text){
+  const t=normalizeName(text||'').toLocaleLowerCase();
+  return RELIC_WIKI_CATEGORIES.find(x=>x.toLocaleLowerCase()===t)||'';
+}
+function relicWikiTablesForCategory(doc,category){
+  const target=category.toLocaleLowerCase();
+  const out=[];const seen=new Set();
+  const add=(tables)=>{for(const table of tables||[]){if(!table||seen.has(table))continue;seen.add(table);out.push(table)}};
+  const isTarget=v=>relicWikiCategoryFromText(v) .toLocaleLowerCase()===target;
+  // Tabber panels
+  for(const panel of doc.querySelectorAll('.tabbertab[title],.tabbertab[data-title],.tabbertab[data-tab-title],[role="tabpanel"][aria-label],[role="tabpanel"][data-title],[role="tabpanel"][data-tab-title]')){
+    const attrs=[panel.getAttribute('title'),panel.getAttribute('data-title'),panel.getAttribute('data-tab-title'),panel.getAttribute('aria-label')].filter(Boolean);
+    if(attrs.some(isTarget))add(panel.querySelectorAll('table'));
+  }
+  // Accessible tab controls -> panel
+  for(const control of doc.querySelectorAll('[role="tab"],a[aria-controls],button[aria-controls],[data-tab-target],[data-mw-tab-target]')){
+    const label=normalizeName(control.textContent||control.getAttribute('aria-label')||control.getAttribute('title')||'');
+    if(!isTarget(label))continue;
+    const ids=[control.getAttribute('aria-controls'),control.getAttribute('data-tab-target'),control.getAttribute('data-mw-tab-target')].filter(Boolean);
+    for(const raw of ids){const panel=doc.getElementById(String(raw).replace(/^#/,''));if(panel)add(panel.querySelectorAll('table'))}
+  }
+  // Any element carrying the category label; climb a few levels to a tab content container.
+  for(const node of doc.querySelectorAll('a,button,[role="tab"],li,span,div')){
+    if(!isTarget(node.textContent||''))continue;
+    let cur=node,depth=0;
+    while(cur&&depth<6){
+      const tables=[...cur.querySelectorAll?.('table')||[]];
+      if(tables.length){add(tables);break}
+      cur=cur.parentElement;depth++;
+    }
+  }
+  // Heading/section fallback
+  for(const h of doc.querySelectorAll('h2,h3,h4,h5,h6')){
+    if(!isTarget(adventureHeadingText(h)))continue;
+    add(headingSectionTables(doc,h));
+  }
+  return out;
+}
+function wikiRelicIconFromCell(cell){
+  if(!cell)return "";
+  const img=cell.querySelector('img[src],img[data-src],img[data-original],img[data-lazy-src]');
+  if(!img)return "";
+  const raw=img.getAttribute('data-original')||img.getAttribute('data-src')||img.getAttribute('data-lazy-src')||img.getAttribute('src')||'';
+  if(!raw)return "";
+  try{return new URL(raw,'https://wiki.leagueoflegends.com/').href}catch(e){return raw}
+}
+function wikiRelicDescriptionFromCell(cell){
+  if(!cell)return "";
+  const clone=cell.cloneNode(true);
+  clone.querySelectorAll('br').forEach(x=>x.replaceWith(' \n'));
+  clone.querySelectorAll('img').forEach(img=>img.remove());
+  return normalizeName(clone.textContent||'');
+}
+function parseWikiRelicData(html){
+  const doc=new DOMParser().parseFromString(html||'','text/html');
+  const out=[]; const seen=new Set();
+  for(const category of RELIC_WIKI_CATEGORIES){
+    for(const table of relicWikiTablesForCategory(doc,category)){
+      for(const tr of table.querySelectorAll('tr')){
+        const cells=[...tr.querySelectorAll(':scope > th,:scope > td')];
+        // The Wiki relic tables are intentionally read as only the first two
+        // columns: Relic and Description. Any extra columns are ignored.
+        if(cells.length<2)continue;
+        let name=relicNameFromCell(cells[0]);
+        name=name.replace(/^LoR\s*:\s*/i,'').trim();
+        name=name.replace(/https?:\/\/[^\s]+/gi,'').trim();
+        name=name.replace(/^R\d{3,6}\s*[-–—:]?\s*/i,'').trim();
+        if(!name||/^(relic|name)$/i.test(name)||name.length>100)continue;
+        const key=name.toLocaleLowerCase();
+        if(seen.has(key))continue;
+        const icon=wikiRelicIconFromCell(cells[0]);
+        const desc=wikiRelicDescriptionFromCell(cells[1]);
+        if(!desc && !icon)continue;
+        seen.add(key);
+        out.push({name,rarity:category,wikiCategory:category,icon,desc,source:'wiki'});
+      }
+    }
+  }
+  return out;
+}
+async function loadWikiRelicData(){
+  let html='';let lastErr=null;
+  const targets=[SOURCES.wikiRelics,...CORS_PROXIES.map(fn=>fn(SOURCES.wikiRelics))];
+  for(const target of targets){
+    try{html=await fetchText(target,18000);if(html&&html.length>1000)break}catch(e){lastErr=e}
+  }
+  if(!html){
+    try{const json=await fetchJSON(wikiApiUrl({page:'LoR:Relics',prop:'text'}),18000);html=json?.parse?.text?.['*']||''}catch(e){lastErr=e}
+  }
+  if(!html)throw lastErr||new Error('Relic Wiki source unavailable');
+  const list=parseWikiRelicData(html);
+  if(list.length<10)throw new Error(`Relic Wiki parser found too few records (${list.length})`);
+  return list;
+}
+function relicCategory(r){
+  const raw=String(r?.wikiCategory||r?.rarity||'').trim().toLocaleLowerCase();
+  if(raw==='commons'||raw==='common')return 'Commons';
+  if(raw==='rares'||raw==='rare')return 'Rares';
+  if(raw==='epics'||raw==='epic')return 'Epics';
+  if(raw==='signature epics'||raw==='signature epic')return 'Signature Epics';
+  return '';
+}
+function relicCategoryClass(r){
+  const c=relicCategory(r);
+  return c==='Commons'?'relic-common':c==='Rares'?'relic-rare':c==='Epics'?'relic-epic':c==='Signature Epics'?'relic-signature':'';
+}
+
+function powerRarity(r){const raw=String(r?.rarity||r?.wikiRarity||'').trim().toLocaleLowerCase();if(raw==='common'||raw==='commons')return 'Common';if(raw==='rare'||raw==='rares')return 'Rare';if(raw==='epic'||raw==='epics')return 'Epic';if(raw==='legendary'||raw==='legendaries')return 'Legendary';return normalizeName(r?.rarity||'');}
+function powerRarityClass(r){const c=powerRarity(r);return c==='Common'?'power-common':c==='Rare'?'power-rare':c==='Epic'?'power-epic':c==='Legendary'?'power-legendary':'';}
+function decodeHtmlEntities(v){
+  const t=document.createElement('textarea'); t.innerHTML=String(v||''); return t.value;
+}
+function cleanWikiMarkup(v){
+  let s=decodeHtmlEntities(String(v||''));
+  s=s.replace(/<!--.*?-->/gs,'');
+  s=s.replace(/<ref[^>]*>.*?<\/ref>/gis,'');
+  s=s.replace(/\[\[(?:[^\]|]+\|)?([^\]]+)\]\]/g,'$1');
+  s=s.replace(/\[https?:\/\/[^\s\]]+\s+([^\]]+)\]/g,'$1');
+  s=s.replace(/<[^>]+>/g,'');
+  s=s.replace(/\{\{[^{}]*\}\}/g,'');
+  s=s.replace(/\{\|[\s\S]*?\|\}/g,'');
+  s=s.replace(/^\s*[*!#;:]\s*/gm,'');
+  s=s.replace(/\[\[(?:File|Image):[^\]]+\]\]/gi,'');
+  s=s.replace(/'{2,}/g,'');
+  return normalizeName(s.replace(/\s+/g,' '));
+}
+function parsePowerWikitext(wikitext,title,thumb){
+  const raw=String(wikitext||''); if(!raw)return null;
+  const getField=(names)=>{
+    for(const n of names){
+      const escName=n.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+      const re=new RegExp('\\|\\s*'+escName+'\\s*=\\s*([\\s\\S]*?)(?=\\n\\s*\\|\\s*[A-Za-z][^=|\\n]{0,80}\\s*=|\\n\\s*\\}\})','i');
+      const m=raw.match(re); if(m){const value=cleanWikiMarkup(m[1]); if(value)return value;}
+    }
+    return '';
+  };
+  const id=(getField(['ID','id','Card ID','CardID'])||((title.match(/P\d{4,6}/i)||[])[0]||'')).toUpperCase();
+  const name=cleanWikiMarkup(getField(['Name','name','Title','title']))||normalizeName(title.replace(/^LoR:/i,''));
+  const desc=cleanWikiMarkup(getField(['Description','description','Power','Effect','Text','text']));
+  const rarity=cleanWikiMarkup(getField(['Rarity','rarity','Power Rarity']));
+  if(!id||!/^P\d{4,6}$/.test(id)||!name||!desc)return null;
+  const icon=thumb||`https://wiki.leagueoflegends.com/en-us/images/thumb/${id}.png/400px-${id}.png`;
+  const sourceTitle=title.replace(/_/g,' ');
+  return {id,name,rarity,desc,icon,source:'wiki',sourceUrl:`https://wiki.leagueoflegends.com/en-us/${encodeURIComponent(sourceTitle).replace(/%3A/g,':')}`};
+}
+function parsePowerHtml(html,title,thumb){
+  const doc=new DOMParser().parseFromString(String(html||''),'text/html');
+  const fields={};
+  for(const tr of doc.querySelectorAll('table tr')){
+    const cells=[...tr.children]; if(cells.length<2)continue;
+    const key=normalizeName(cells[0].textContent||'').replace(/[:：]$/,'').toLowerCase();
+    const val=normalizeName(cells.slice(1).map(x=>x.textContent||'').join(' '));
+    if(key&&val)fields[key]=val;
+  }
+  const id=(fields.id||fields['card id']||((title.match(/P\d{4,6}/i)||[])[0]||'')).toUpperCase();
+  const name=fields.name||fields.title||normalizeName(title.replace(/^LoR:/i,''));
+  const desc=fields.description||fields.power||fields.effect||fields.text||'';
+  const rarity=fields.rarity||fields['power rarity']||'';
+  if(!/^P\d{4,6}$/.test(id)||!name||!desc)return null;
+  const icon=thumb||doc.querySelector('img[src*="-full"], img[src*="P'+id.slice(1)+'"]')?.src||`https://wiki.leagueoflegends.com/en-us/images/thumb/${id}.png/400px-${id}.png`;
+  const sourceTitle=title.replace(/_/g,' ');
+  return {id,name,rarity,desc,icon,source:'wiki',sourceUrl:`https://wiki.leagueoflegends.com/en-us/${encodeURIComponent(sourceTitle).replace(/%3A/g,':')}`};
+}
+function parsePowerFromReturned(payload,title,thumb=''){const raw=String(payload||'');if(!raw)return null;try{const json=JSON.parse(raw);if(json?.parse?.wikitext?.['*'])return parsePowerWikitext(json.parse.wikitext['*'],title,thumb);if(json?.parse?.wikitext?.content)return parsePowerWikitext(json.parse.wikitext.content,title,thumb);if(json?.parse?.text?.['*'])return parsePowerHtml(json.parse.text['*'],title,thumb);if(json?.parse?.text?.content)return parsePowerHtml(json.parse.text.content,title,thumb);}catch(e){}return parsePowerWikitext(raw,title,thumb)||parsePowerHtml(raw,title,thumb);}
+function parsePowerApiBatch(json){
+  const pages=Array.isArray(json?.query?.pages)?json.query.pages:Object.values(json?.query?.pages||{});
+  const out=[];
+  for(const page of pages){
+    const title=page?.title||'';
+    const rev=page?.revisions?.[0];
+    const wt=rev?.slots?.main?.['*'] ?? rev?.slots?.main?.content ?? rev?.['*'] ?? '';
+    const thumb=page?.thumbnail?.source||'';
+    const item=parsePowerWikitext(wt,title,thumb);
+    if(item)out.push(item);
+  }
+  return out;
+}
+function parsePowerCategoryLinks(html){
+  const raw=String(html||'');
+  const doc=new DOMParser().parseFromString(raw,'text/html');
+  const out=[]; const seen=new Set();
+  const add=(title,href='')=>{
+    title=decodeHtmlEntities(String(title||'')).replace(/_/g,' ').trim();
+    title=title.replace(/^https?:\/\/wiki\.leagueoflegends\.com\/en-us\//i,'');
+    if(!/^LoR:/i.test(title))return;
+    if(/^LoR:(?:Category|File|Module|Template|Special):/i.test(title))return;
+    const cleanTitle=title.replace(/^LoR:/i,'LoR:');
+    const key=cleanTitle.toLocaleLowerCase(); if(seen.has(key))return;
+    let finalHref=href||'';
+    try{
+      if(finalHref && !/^https?:/i.test(finalHref)) finalHref=new URL(finalHref,'https://wiki.leagueoflegends.com').href;
+    }catch(e){finalHref=''}
+    if(!finalHref)finalHref=`https://wiki.leagueoflegends.com/en-us/${encodeURIComponent(cleanTitle).replace(/%3A/g,':')}`;
+    seen.add(key);out.push({title:cleanTitle,href:finalHref});
+  };
+  for(const a of doc.querySelectorAll('a[href]')){
+    const href=a.getAttribute('href')||'';
+    const text=normalizeName(a.textContent||'');
+    let title='';
+    const m=href.match(/(?:https?:\/\/wiki\.leagueoflegends\.com)?\/en-us\/(LoR:[^?#"'<>]+)/i);
+    if(m)title=decodeURIComponent(m[1]);
+    else if(/^LoR:/i.test(text))title=text;
+    if(title)add(title,href);
+  }
+  // Jina Reader / plain-text fallbacks.
+  const patterns=[
+    /\[\s*([^\]]*LoR:[^\]]+)\s*\]\((?:https?:\/\/wiki\.leagueoflegends\.com)?\/en-us\/(LoR:[^)#?]+)[^)]*\)/gi,
+    /https?:\/\/wiki\.leagueoflegends\.com\/en-us\/(LoR:[A-Za-z0-9_:'’&.()!+\-]+)[?#]?/gi,
+    /(?:^|[\n•·])\s*(LoR:[A-Za-z0-9_:'’&.()!+\-]+)\s*$/gim
+  ];
+  for(const re of patterns){
+    let m; while((m=re.exec(raw))){
+      if(m[2])add(m[2],`https://wiki.leagueoflegends.com/en-us/${encodeURIComponent(m[2]).replace(/%3A/g,':')}`);
+      else if(m[1]&&/^LoR:/i.test(m[1]))add(m[1]);
+    }
+  }
+  return out;
+}
+
+
+function powerIdFromAsset(value){
+  const m=String(value||'').match(/(?:^|[\/_-])(P\d{4,6})(?:[-_.]|$)/i);
+  return m?m[1].toUpperCase():'';
+}
+function parsePowerMainPage(html){
+  const raw=String(html||'');
+  if(!raw)return [];
+  const out=[]; const seen=new Set();
+  const add=(item)=>{
+    if(!item||!item.name||!item.desc)return;
+    const id=String(item.id||'').toUpperCase();
+    const name=normalizeName(item.name);
+    const key=(id||name).toLocaleLowerCase();
+    if(seen.has(key))return;
+    seen.add(key);
+    out.push({
+      id,
+      name,
+      rarity:powerRarity(item),
+      desc:normalizeName(item.desc),
+      icon:item.icon||'',
+      source:'wiki',
+      sourceUrl:item.sourceUrl||''
+    });
+  };
+
+  // Normal MediaWiki HTML: look specifically for tables whose headers are
+  // Name / Rarity / Description. This avoids accidentally reading unrelated
+  // tables from the page.
+  try{
+    const doc=new DOMParser().parseFromString(raw,'text/html');
+    for(const table of doc.querySelectorAll('table')){
+      const rows=[...table.querySelectorAll('tr')];
+      if(!rows.length)continue;
+      let headerRow=null, headers=[];
+      for(const row of rows.slice(0,4)){
+        const cells=[...row.children];
+        const texts=cells.map(c=>normalizeName(c.textContent||'').toLocaleLowerCase());
+        const ni=texts.findIndex(t=>/^name$|\bname\b/.test(t));
+        const ri=texts.findIndex(t=>/^rarity$|\brarity\b/.test(t));
+        const di=texts.findIndex(t=>/^description$|\bdescription\b/.test(t));
+        if(ni>=0&&ri>=0&&di>=0){headerRow=row;headers=texts;break;}
+      }
+      if(!headerRow)continue;
+      const ni=headers.findIndex(t=>/^name$|\bname\b/.test(t));
+      const ri=headers.findIndex(t=>/^rarity$|\brarity\b/.test(t));
+      const di=headers.findIndex(t=>/^description$|\bdescription\b/.test(t));
+      for(const row of rows.slice(rows.indexOf(headerRow)+1)){
+        const cells=[...row.children];
+        if(cells.length<=Math.max(ni,ri,di))continue;
+        const nameCell=cells[ni];
+        const link=nameCell.querySelector('a[href*="/LoR:"]')||nameCell.querySelector('a[href*="LoR%3A"]');
+        const name=normalizeName(link?.textContent||nameCell.textContent||'');
+        const href=link?.getAttribute('href')||'';
+        if(!name||/^(name|rarity|description)$/i.test(name))continue;
+        if(/^LoR:(?:Category|File|Module|Template|Special):/i.test(name))continue;
+        const iconEl=nameCell.querySelector('img[src], img[data-src], img[data-srcset], img[srcset], img[data-lazy-src], img[data-original]');
+        let icon='';
+        if(iconEl){
+          const candidates=[
+            iconEl.getAttribute('src'),
+            iconEl.getAttribute('data-src'),
+            iconEl.getAttribute('data-lazy-src'),
+            iconEl.getAttribute('data-original'),
+            iconEl.getAttribute('data-srcset'),
+            iconEl.getAttribute('srcset')
+          ].filter(Boolean);
+          for(const candidate of candidates){
+            const first=String(candidate).split(',')[0].trim().split(/\s+/)[0];
+            if(first){icon=first;break;}
+          }
+        }
+        const desc=normalizeName(cells[di].textContent||'');
+        const rarity=normalizeName(cells[ri].textContent||'');
+        if(!desc)continue;
+        let sourceUrl=href;
+        try{if(sourceUrl&&!/^https?:/i.test(sourceUrl))sourceUrl=new URL(sourceUrl,'https://wiki.leagueoflegends.com').href}catch(e){}
+        let id=powerIdFromAsset(icon)||powerIdFromAsset(sourceUrl);
+        // Wiki may lazy-load the thumbnail or expose only the card ID in a
+        // data attribute. Look across the whole row before giving up.
+        if(!id){
+          const rowBlob=row.outerHTML||'';
+          id=powerIdFromAsset(rowBlob);
+        }
+        // Normalize protocol-relative / relative image URLs.
+        try{if(icon&&!/^https?:/i.test(icon))icon=new URL(icon,'https://wiki.leagueoflegends.com').href}catch(e){}
+        // The main Powers table uses the native Pxxxx image. If we found the
+        // ID but the HTML image was lazy/relative, use the stable Wiki thumb.
+        if(id && /^P\d{4,6}$/.test(id))icon=`https://wiki.leagueoflegends.com/en-us/images/thumb/${id}.png/400px-${id}.png`;
+        add({id,name,rarity,desc,icon,sourceUrl});
+      }
+    }
+  }catch(e){}
+
+  // Jina / text fallback: parse Markdown tables returned by the reader.
+  // Expected shape: | [Power Name](LoR link) | Common | Description |
+  if(!out.length){
+    const lines=raw.split(/\r?\n/);
+    for(const line of lines){
+      if(!/^\s*\|/.test(line)||!/LoR:/i.test(line))continue;
+      const cells=line.split('|').slice(1,-1).map(x=>normalizeName(x));
+      if(cells.length<3)continue;
+      if(/^(name|rarity|description)$/i.test(cells[0]))continue;
+      const linkMatch=cells[0].match(/\[([^\]]+)\]\((?:https?:\/\/wiki\.leagueoflegends\.com)?\/en-us\/(LoR:[^)#?]+)[^)]*\)/i);
+      if(!linkMatch)continue;
+      const name=normalizeName(linkMatch[1]);
+      const href=`https://wiki.leagueoflegends.com/en-us/${encodeURIComponent(linkMatch[2]).replace(/%3A/g,':').replace(/%20/g,'_')}`;
+      const rarity=cells.find(x=>/^(Common|Rare|Epic|Legendary)$/i.test(x))||'';
+      const ri=cells.indexOf(rarity);
+      const desc=ri>=0?cells.slice(ri+1).join(' | '):cells[cells.length-1];
+      const id=powerIdFromAsset(line);
+      add({id,name,rarity,desc,sourceUrl:href});
+    }
+  }
+
+  return out;
+}
+
+function parsePowerLetterLinks(html,letter){
+  const raw=String(html||'');
+  const doc=new DOMParser().parseFromString(raw,'text/html');
+  const out=[]; const seen=new Set();
+  const add=(title,href='',text='')=>{
+    title=decodeHtmlEntities(String(title||'')).replace(/_/g,' ').trim();
+    title=title.replace(/^https?:\/\/wiki\.leagueoflegends\.com\/en-us\//i,'');
+    if(!/^LoR:/i.test(title))return;
+    const name=normalizeName(title.replace(/^LoR:/i,''));
+    if(!name || name.toLocaleLowerCase()===String(letter).toLocaleLowerCase())return;
+    if(/^Category:|^File:|^Module:|^Template:|^Special:/i.test(name))return;
+    // The alphabet pages are an index. Keep actual LoR page links and let the
+    // individual-page parser decide whether the page is really a Power.
+    const cleanTitle=title.replace(/^LoR:/i,'LoR:');
+    const key=cleanTitle.toLocaleLowerCase();
+    if(seen.has(key))return;
+    let finalHref=href||'';
+    try{
+      if(finalHref && !/^https?:/i.test(finalHref))finalHref=new URL(finalHref,'https://wiki.leagueoflegends.com').href;
+    }catch(e){finalHref=''}
+    if(!finalHref)finalHref=`${SOURCES.wikiPowerLetterBase}${encodeURIComponent(name).replace(/%20/g,'_')}`;
+    // Ignore obvious non-Power infrastructure links.
+    if(/(?:\/PoC(?:\/|$)|:PoC(?:\/|$)|Category:|Special:|File:|Module:|Template:)/i.test(finalHref))return;
+    seen.add(key);out.push({title:cleanTitle,href:finalHref,text:normalizeName(text||name)});
+  };
+
+  for(const a of doc.querySelectorAll('a[href]')){
+    const href=a.getAttribute('href')||'';
+    const text=normalizeName(a.textContent||'');
+    let title='';
+    const m=href.match(/(?:https?:\/\/wiki\.leagueoflegends\.com)?\/en-us\/(LoR:[^?#"'<>]+)/i);
+    if(m)title=decodeURIComponent(m[1]);
+    else if(/^LoR:/i.test(text))title=text;
+    if(title)add(title,href,text);
+  }
+
+  // Jina/plain-text fallback: retain actual LoR links from the letter page.
+  const patterns=[
+    /\[\s*([^\]]+)\]\((?:https?:\/\/wiki\.leagueoflegends\.com)?\/en-us\/(LoR:[^)#?]+)[^)]*\)/gi,
+    /https?:\/\/wiki\.leagueoflegends\.com\/en-us\/(LoR:[A-Za-z0-9_:'’&.()!+\-]+)[?#]?/gi
+  ];
+  for(const re of patterns){
+    let m;
+    while((m=re.exec(raw))){
+      if(m[2])add(m[2],`https://wiki.leagueoflegends.com/en-us/${encodeURIComponent(m[2]).replace(/%3A/g,':').replace(/%20/g,'_')}`,m[1]||'');
+      else if(m[1])add(m[1],`https://wiki.leagueoflegends.com/en-us/${encodeURIComponent(m[1]).replace(/%3A/g,':').replace(/%20/g,'_')}`,m[1].replace(/^LoR:/i,''));
+    }
+  }
+  return out;
+}
+
+async function loadPowerAlphabetLinks(){
+  const letters='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const results=await Promise.allSettled(letters.map(async letter=>{
+    const url=`${SOURCES.wikiPowerLetterBase}${letter}`;
+    try{
+      const html=await fetchPowerSource(url,25000);
+      return {letter,items:parsePowerLetterLinks(html,letter)};
+    }catch(e){return {letter,items:[]};}
+  }));
+  const out=[]; const seen=new Set();
+  for(const result of results){
+    if(result.status!=='fulfilled')continue;
+    for(const item of result.value.items||[]){
+      const key=String(item.title||'').toLocaleLowerCase();
+      if(!key||seen.has(key))continue;
+      seen.add(key);out.push(item);
+    }
+  }
+  return out;
+}
+
+function powerFromPagePayload(payload,title,href){
+  const item=parsePowerFromReturned(payload,title,'');
+  if(!item)return null;
+  return {...item,source:'wiki',sourceUrl:href||item.sourceUrl};
+}
+
+async function loadPowerMediaApiIndex(){
+  // The PoC Power media category contains both Pxxxx-full.png and Pxxxx.png.
+  // Use the full-image file as the unique Power ID, and resolve its File usage
+  // to the actual LoR:Power page in the same API request. This avoids a second
+  // 1,000+ fileusage pass and is much more reliable for large categories.
+  const out=[]; const seen=new Set(); let cmcontinue='';
+  for(let page=0;page<10;page++){
+    const params=new URLSearchParams({
+      action:'query',format:'json',origin:'*',generator:'categorymembers',
+      gcmtitle:SOURCES.wikiPowerCategory,gcmnamespace:'6',gcmlimit:'500',
+      prop:'fileusage',fulimit:'20'
+    });
+    if(cmcontinue)params.set('gcmcontinue',cmcontinue);
+    let json=null;
+    try{
+      const raw=await fetchPowerSource(`${SOURCES.wikiApi}?${params.toString()}`,30000);
+      json=JSON.parse(raw);
+    }catch(e){break}
+    const pagesObj=json?.query?.pages||{};
+    const pages=Array.isArray(pagesObj)?pagesObj:Object.values(pagesObj);
+    if(!pages.length)break;
+    for(const pageObj of pages){
+      const fileTitle=String(pageObj?.title||'');
+      const match=fileTitle.match(/^File:(P\d{4,6})-full\.png$/i);
+      if(!match)continue;
+      const id=match[1].toUpperCase();
+      if(seen.has(id))continue;
+      const uses=Array.isArray(pageObj?.fileusage)?pageObj.fileusage:[];
+      const preferred=uses.find(u=>/^LoR:/i.test(String(u?.title||'')) && !/\/(?:PoC|Adventures)$/i.test(String(u?.title||'')));
+      const any=uses.find(u=>/^LoR:/i.test(String(u?.title||'')));
+      const powerTitle=preferred?.title||any?.title||'';
+      seen.add(id);
+      out.push({id,fileTitle,powerTitle});
+    }
+    const cont=json?.continue?.gcmcontinue;
+    if(!cont)break;
+    cmcontinue=cont;
+  }
+  return out;
+}
+
+function parsePowerMediaHtml(html){
+  const raw=String(html||'');
+  const doc=new DOMParser().parseFromString(raw,'text/html');
+  const out=[]; const seen=new Set();
+  const add=(id,title,powerTitle='')=>{
+    id=String(id||'').toUpperCase();
+    if(!/^P\d{4,6}$/.test(id)||seen.has(id))return;
+    seen.add(id);out.push({id,fileTitle:title||`File:${id}-full.png`,powerTitle:powerTitle||''});
+  };
+  // Normal Category HTML: links point to File:Pxxxx-full.png.
+  for(const a of doc.querySelectorAll('a[href]')){
+    const href=a.getAttribute('href')||'';
+    const text=normalizeName(a.textContent||'');
+    const blob=`${href} ${text}`;
+    const m=blob.match(/(?:File%3A|File:)?(P\d{4,6})-full\.png/i);
+    if(m)add(m[1],`File:${m[1].toUpperCase()}-full.png`);
+  }
+  // Plain-text / Jina fallback.
+  const re=/(?:File%3A|File:)?(P\d{4,6})-full\.png/gi; let m;
+  while((m=re.exec(raw)))add(m[1],`File:${m[1].toUpperCase()}-full.png`);
+  return out;
+}
+
+async function loadPowerMediaHtmlIndex(){
+  const out=[]; const seen=new Set(); let filefrom='';
+  for(let page=0;page<10;page++){
+    const url=filefrom
+      ? `https://wiki.leagueoflegends.com/en-us/Category:PoC_Power?filefrom=${encodeURIComponent(filefrom)}`
+      : 'https://wiki.leagueoflegends.com/en-us/Category:PoC_Power?filefrom=P0414-full.png';
+    try{
+      const html=await fetchPowerSource(url,30000);
+      for(const item of parsePowerMediaHtml(html)){
+        if(!seen.has(item.id)){seen.add(item.id);out.push(item)}
+      }
+      const doc=new DOMParser().parseFromString(String(html||''),'text/html');
+      let next='';
+      // Do not depend on the visible label. MediaWiki's pagination link is
+      // identified reliably by its filefrom query parameter.
+      for(const a of doc.querySelectorAll('a[href]')){
+        const href=a.getAttribute('href')||'';
+        const m=href.match(/[?&]filefrom=([^&#]+)/i);
+        if(!m)continue;
+        const candidate=decodeURIComponent(m[1]);
+        if(candidate && candidate!==filefrom){next=candidate;break}
+      }
+      if(!next||next===filefrom)break;
+      filefrom=next;
+    }catch(e){break}
+  }
+  return out;
+}
+
+async function loadPowerFilePageFallback(files){
+  // If the API is unavailable, resolve File:Pxxxx-full.png pages directly.
+  // File pages contain links under "File usage" to the LoR Power page.
+  const out=[];
+  for(let start=0;start<files.length;start+=8){
+    const batch=files.slice(start,start+8);
+    const found=await Promise.all(batch.map(async file=>{
+      try{
+        const href=`https://wiki.leagueoflegends.com/en-us/File:${file.id}-full.png`;
+        const html=await fetchPowerSource(href,20000);
+        const doc=new DOMParser().parseFromString(html,'text/html');
+        let title='';
+        for(const a of doc.querySelectorAll('a[href]')){
+          const ah=a.getAttribute('href')||'';
+          const at=normalizeName(a.textContent||'');
+          const m=ah.match(/(?:https?:\/\/wiki\.leagueoflegends\.com)?\/en-us\/(LoR:[^?#]+)/i);
+          const candidate=m?decodeURIComponent(m[1]):(/^LoR:/i.test(at)?at:'');
+          if(!candidate||/^LoR:(?:Category|File|Module|Template|Special):/i.test(candidate))continue;
+          if(/\/PoC$/i.test(candidate))continue;
+          title=candidate;break;
+        }
+        return title?{...file,powerTitle:title}:null;
+      }catch(e){return null}
+    }));
+    for(const item of found)if(item)out.push(item);
+  }
+  return out;
+}
+
+async function loadPowerPageBatch(titles){
+  if(!titles.length)return [];
+  const out=[];
+  for(let start=0;start<titles.length;start+=50){
+    const batch=titles.slice(start,start+50);
+    const params=new URLSearchParams({
+      action:'query',format:'json',origin:'*',titles:batch.join('|'),
+      prop:'revisions|pageimages',rvprop:'content',rvslots:'main',piprop:'thumbnail',pithumbsize:'256'
+    });
+    try{
+      const raw=await fetchPowerSource(`${SOURCES.wikiApi}?${params.toString()}`,30000);
+      const json=JSON.parse(raw);
+      out.push(...parsePowerApiBatch(json));
+    }catch(e){}
+  }
+  return out;
+}
+
+async function loadWikiPowers(){
+  const out=[]; const seen=new Set();
+  const add=p=>{
+    if(!p||!p.name||!p.desc)return;
+    const id=String(p.id||'').toUpperCase();
+    if(id && !/^P\d{4,6}$/.test(id))return;
+    const nameKey=normalizeName(p.name).toLocaleLowerCase();
+    const key=id||nameKey;
+    if(!key||seen.has(key))return;
+    seen.add(key);
+    let icon=p.icon||'';
+    if(id&&/^P\d{4,6}$/.test(id))icon=`https://wiki.leagueoflegends.com/en-us/images/thumb/${id}.png/400px-${id}.png`;
+    out.push({...p,id,rarity:powerRarity(p),icon});
+  };
+
+  // 1) Keep the LoR:Powers main table as the first source. It gives clean
+  // name/rarity/description data for the General Powers shown on the page.
+  try{
+    setDataStatus('Loading Powers from LoR:Powers…');
+    const html=await fetchPowerSource(SOURCES.wikiPowers,30000);
+    parsePowerMainPage(html).forEach(add);
+  }catch(e){}
+
+  // 2) Use the PoC Power MEDIA category as the complete ID index. The Wiki
+  // currently exposes 1,043+ media files there; each Power has a Pxxxx-full.png
+  // description image plus a Pxxxx.png icon. We use the full-image file IDs,
+  // then resolve each file to the LoR Power page through file usage.
+  let files=await loadPowerMediaApiIndex();
+  if(!files.length)files=await loadPowerMediaHtmlIndex();
+  setDataStatus(`Power media index found ${files.length} IDs…`);
+
+  if(files.length){
+    // The preferred API path already returns the Power page title alongside
+    // each Pxxxx-full.png. No second fileusage request is necessary.
+    let titles=files.map(f=>f.powerTitle).filter(Boolean);
+    let uniqueTitles=[...new Map(titles.map(t=>[t.toLocaleLowerCase(),t])).values()];
+
+    // HTML category fallback only gives IDs, so resolve the missing IDs via
+    // their individual File pages when necessary.
+    if(!uniqueTitles.length){
+      const resolved=await loadPowerFilePageFallback(files);
+      titles=resolved.map(f=>f.powerTitle).filter(Boolean);
+      uniqueTitles=[...new Map(titles.map(t=>[t.toLocaleLowerCase(),t])).values()];
+    }
+
+    setDataStatus(`Reading ${uniqueTitles.length} Power pages…`);
+    const pageItems=await loadPowerPageBatch(uniqueTitles);
+    pageItems.forEach(add);
+
+    // If some API file-usage mappings were missing, resolve only the missing
+    // IDs instead of re-fetching every File page.
+    const missing=files.filter(f=>f.powerTitle && !out.some(p=>String(p.id).toUpperCase()===f.id));
+    if(missing.length){
+      const fallback=await loadPowerFilePageFallback(missing.slice(0,120));
+      const moreTitles=[...new Map(fallback.map(f=>[String(f.powerTitle).toLocaleLowerCase(),f.powerTitle])).values()];
+      if(moreTitles.length)loadPowerPageBatch(moreTitles).then(items=>items.forEach(add)).catch(()=>{});
+    }
+  }
+
+  // 3) Supplemental A-Z index: DO NOT replace or rewrite anything already
+  // loaded above.  The current Power set is the base dataset.  A-Z pages are
+  // only used to discover additional LoR:* pages, then the individual pages
+  // are parsed in batches.  A Power is appended only when its ID is not
+  // already present in the base set.
+  try{
+    const existingIds=new Set(out.map(p=>String(p?.id||'').toUpperCase()).filter(Boolean));
+    const existingNames=new Set(out.map(p=>normalizeName(p?.name||'').toLocaleLowerCase()).filter(Boolean));
+    setDataStatus(`Powers loaded: ${out.length}. Checking A–Z for additional Powers…`);
+    const alphaLinks=await loadPowerAlphabetLinks();
+    const candidates=alphaLinks.filter(x=>{
+      const key=normalizeName(x?.title||'').toLocaleLowerCase();
+      return key && !/^LoR:(?:Powers?|Category|File|Module|Template|Special):/i.test(key);
+    });
+    setDataStatus(`Checking ${candidates.length} A–Z Power pages for new entries…`);
+
+    for(let start=0;start<candidates.length;start+=50){
+      const batch=candidates.slice(start,start+50);
+      const items=await loadPowerPageBatch(batch.map(x=>x.title));
+      for(const item of items){
+        if(!item||!item.id||!item.name||!item.desc)continue;
+        const id=String(item.id).toUpperCase();
+        const nameKey=normalizeName(item.name).toLocaleLowerCase();
+        // Preserve the existing dataset exactly.  Never overwrite an existing
+        // Power's icon/name/rarity/description/source.
+        if(existingIds.has(id)||existingNames.has(nameKey))continue;
+        const icon=`https://wiki.leagueoflegends.com/en-us/images/thumb/${id}.png/400px-${id}.png`;
+        out.push({...item,id,icon,source:'wiki',sourceUrl:item.sourceUrl||''});
+        existingIds.add(id);
+        existingNames.add(nameKey);
+      }
+      setDataStatus(`Powers: ${out.length} (A–Z supplement ${Math.min(start+50,candidates.length)}/${candidates.length})`);
+    }
+  }catch(e){
+    // Supplemental discovery is deliberately non-fatal.  The base Power set
+    // above remains untouched if A–Z cannot be reached.
+  }
+
+  // Minimal fallback only if every live source failed.
+  if(!out.length){
+    add({id:'P0908',name:'Adaptation',rarity:'Common',desc:"When you summon a champion, grant it two random keywords allies don't have.",icon:'https://wiki.leagueoflegends.com/en-us/images/thumb/P0908.png/400px-P0908.png?b8963',source:'wiki',sourceUrl:'https://wiki.leagueoflegends.com/en-us/LoR:Adaptation'});
+  }
+  setDataStatus(`Powers loaded: ${out.length}`);
+  return out.sort((a,b)=>{
+    const an=parseInt(String(a.id||'').slice(1),10),bn=parseInt(String(b.id||'').slice(1),10);
+    if(Number.isFinite(an)&&Number.isFinite(bn))return an-bn;
+    return String(a.name).localeCompare(String(b.name));
+  });
+}
+
+async function loadRuneterraSource(url,type){
+  const html=await fetchText(url);
+  const list=parseRuneterraCards(html,type);
+  if(list.length<10)throw new Error(`${type} parser found too few records (${list.length})`);
+  return list;
+}
+function wikiApiUrl(params){
+  const q=new URLSearchParams({action:'parse',format:'json',origin:'*',redirects:'1',...params});
+  return SOURCES.wikiApi+'?'+q.toString();
+}
+function parseWikiLinks(html){
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const names=[]; const seen=new Set();
+  for(const a of doc.querySelectorAll('a[href]')){
+    const href=a.getAttribute('href')||''; const text=normalizeName(a.textContent);
+    if(!text||text.length>40)continue;
+    if(!/^\/en-us\/LoR:[^/]+$/.test(href))continue;
+    const name=normalizeName(href.split('/').pop().replace(/_/g,' '));
+    if(!name||seen.has(name.toLowerCase()))continue;
+    seen.add(name.toLowerCase()); names.push({name,href});
+  }
+  return names;
+}
+function absoluteWikiAsset(src){
+  if(!src)return '';
+  if(src.startsWith('//'))return 'https:'+src;
+  if(src.startsWith('/'))return 'https://wiki.leagueoflegends.com'+src;
+  return src;
+}
+function championCircleAsset(src){
+  src=absoluteWikiAsset(src);
+  if(!src)return '';
+  const clean=src.split('?')[0];
+  const m=clean.match(/\/(?:\d+px-)?([^/]+-circle\.png)$/i);
+  // IMPORTANT: only accept Wiki's native LoR Champion Circle asset.
+  // Never turn a normal card/portrait into a circle with CSS.
+  if(!m)return '';
+  const file=m[1];
+  return `https://wiki.leagueoflegends.com/en-us/images/thumb/${file}/44px-${file}`;
+}
+function circleFromNode(node){
+  if(!node)return '';
+  const imgs=[...node.querySelectorAll('img')];
+  for(const img of imgs){
+    const vals=[img.getAttribute('src'),img.getAttribute('data-src'),img.getAttribute('data-lazy-src'),img.currentSrc].filter(Boolean);
+    const srcset=img.getAttribute('srcset')||'';
+    if(srcset)vals.push(...srcset.split(',').map(x=>x.trim().split(/\s+/)[0]).filter(Boolean));
+    for(const v of vals){
+      const abs=absoluteWikiAsset(v);
+      if(/-circle\.png(?:\?|$)/i.test(abs)){
+        const circle=championCircleAsset(abs);
+        if(circle)return circle;
+      }
+    }
+  }
+  return '';
+}
+function imageFromWikiNode(node){
+  return circleFromNode(node);
+}
+function circleFromHtml(html){
+  const doc=new DOMParser().parseFromString(html||'','text/html');
+  return circleFromNode(doc);
+}
+function circleFileFromHtml(html){
+  const m=String(html||'').match(/(?:https?:\/\/wiki\.leagueoflegends\.com[^\s"'<>]+?\/)?(?:\d+px-)?([0-9]{2}[A-Z]{2}\d{3}-circle\.png)/i);
+  return m?m[1]:'';
+}
+function extractChampionRegions(doc){
+  const regionNames=['Bandle City','Bilgewater','Demacia','Freljord','Ionia','Noxus','Piltover & Zaun','Shadow Isles','Shurima','Targon','Runeterra','Spirit Blossom'];
+  const out=[];
+  // Read only a local Region field. Never scan the whole page: the Wiki footer
+  // and navigation contain every region and previously polluted champions.
+  for(const tr of doc.querySelectorAll('tr')){
+    const parts=[...tr.querySelectorAll('th,td')].map(firstText).filter(Boolean);
+    if(!parts.length || !/^region(?:s|\(s\))?$/i.test(parts[0])) continue;
+    const value=parts.slice(1).join(' | ');
+    for(const r of regionNames){
+      if(value.toLowerCase().includes(r.toLowerCase())) out.push(r);
+    }
+  }
+  return [...new Set(out)];
+}
+async function loadWikiRoster(){
+  // IMPORTANT: do not maintain a hard-coded champion allow-list.
+  // The Constellation page is the source of truth for the current PoC roster.
+  const html=await fetchText(SOURCES.wikiConstellation,20000);
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  const regionNames=['Bandle City','Bilgewater','Demacia','Freljord','Ionia','Noxus','Piltover & Zaun','Shadow Isles','Shurima','Targon','Runeterra','Spirit Blossom'];
+  const map=new Map();
+  const links=[...doc.querySelectorAll('a[href]')];
+  for(const a of links){
+    const href=a.getAttribute('href')||'';
+    const m=href.match(/(?:https?:\/\/wiki\.leagueoflegends\.com)?\/en-us\/LoR:([^#?]+)\/PoC(?:[?#].*)?$/i);
+    if(!m)continue;
+    const name=normalizeName(decodeURIComponent(m[1]).replace(/_/g,' '));
+    if(!name||name.length>50)continue;
+    const key=name.toLowerCase();
+    const existing=map.get(key)||{name,regions:[],img:'',wikiPage:name};
+    // Prefer the native LoR Champion Circle that belongs to this Champion link.
+    // Search the link first, then its table row. Do NOT accept a normal card image.
+    const anchorImg=circleFromNode(a);
+    const row=a.closest('tr');
+    const rowImg=anchorImg||circleFromNode(row);
+    if(rowImg)existing.img=rowImg;
+    const rowText=firstText(row);
+    // Constellation descriptions use regional adjectives (e.g. "Noxian Champions")
+    // rather than always spelling the region name itself. Normalize those aliases so
+    // Noxus is not missed while keeping the data live from the Wiki.
+    const regionAliases={
+      'Bandle City':['Bandle City','Bandle'],
+      'Bilgewater':['Bilgewater','Bilgewaterian'],
+      'Demacia':['Demacia','Demacian'],
+      'Freljord':['Freljord','Freljordian'],
+      'Ionia':['Ionia','Ionian'],
+      'Noxus':['Noxus','Noxian'],
+      'Piltover & Zaun':['Piltover & Zaun','Piltover and Zaun','Piltovan','Zaun'],
+      'Shadow Isles':['Shadow Isles','Shadow Isle'],
+      'Shurima':['Shurima','Shuriman'],
+      'Targon':['Targon','Targonian'],
+      'Runeterra':['Runeterra','Runeterran'],
+      'Spirit Blossom':['Spirit Blossom']
+    };
+    const lowerRow=rowText.toLocaleLowerCase();
+    const rowRegions=regionNames.filter(r=>(regionAliases[r]||[r]).some(alias=>lowerRow.includes(alias.toLocaleLowerCase())));
+    existing.regions=[...new Set(existing.regions.concat(rowRegions))];
+    map.set(key,existing);
+  }
+  let result=[...map.values()];
+  if(result.length<10)throw new Error(`Constellation roster found only ${result.length} champions`);
+
+  // Some Constellation layouts do not repeat the region in the same table row.
+  // Resolve missing regions from each champion's own /PoC page, with bounded concurrency.
+  const missing=result.filter(c=>!c.regions.length);
+  let cursor=0;
+  async function worker(){
+    while(cursor<missing.length){
+      const c=missing[cursor++];
+      try{
+        const page=`LoR:${c.wikiPage}/PoC`;
+        const json=await fetchJSON(wikiApiUrl({page,prop:'text'}),12000);
+        const html2=json?.parse?.text?.['*']||'';
+        const d2=new DOMParser().parseFromString(html2,'text/html');
+        const detected=extractChampionRegions(d2);
+        if(detected.length)c.regions=detected;
+      }catch(e){}
+    }
+  }
+  await Promise.all(Array.from({length:Math.min(6,missing.length)},worker));
+
+  // Keep only actual region-assigned PoC champions. A champion with no region is not
+  // silently invented or assigned to a guessed region.
+  result=result.filter(c=>c.regions.length);
+  if(result.length<10)throw new Error(`Constellation roster resolved only ${result.length} champions with regions`);
+  return result;
+}
+function headingMatches(h,wanted){
+  const headline=h.querySelector?.('.mw-headline');
+  const text=normalizeName((headline||h).textContent).toLowerCase();
+  const id=(headline?.id||h.id||'').toLowerCase().replace(/[_-]+/g,' ');
+  const w=normalizeName(wanted).toLowerCase();
+  return text===w || text.includes(w) || id===w.replace(/\s+/g,'_') || id.includes(w.replace(/\s+/g,'_'));
+}
+function sectionTables(doc,sectionName){
+  const headings=[...doc.querySelectorAll('h2,h3,h4,h5,h6')];
+  const heading=headings.find(h=>headingMatches(h,sectionName));
+  if(!heading)return [];
+  const level=parseInt(heading.tagName.slice(1),10);
+  const out=[];
+  let node=heading.nextElementSibling;
+  while(node){
+    if(/^H[2-6]$/i.test(node.tagName) && parseInt(node.tagName.slice(1),10)<=level)break;
+    if(node.matches?.('table'))out.push(node);
+    out.push(...(node.querySelectorAll?.('table')||[]));
+    node=node.nextElementSibling;
+  }
+  return [...new Set(out)];
+}
+function sectionTable(doc,sectionName){
+  return sectionTables(doc,sectionName)[0]||null;
+}
+function tableHeaderTexts(table){
+  const row=[...table.querySelectorAll('tr')].find(r=>r.querySelector(':scope > th'))||table.querySelector('tr');
+  if(!row)return [];
+  return [...row.querySelectorAll(':scope > th,:scope > td')].map(cellPlain).map(x=>x.toLowerCase());
+}
+function tableHasHeaders(table,expected){
+  const headers=tableHeaderTexts(table);
+  return expected.every(w=>headers.some(h=>h===w || h.includes(w)));
+}
+function findTableByHeaders(doc,expected){
+  return [...doc.querySelectorAll('table')].find(t=>tableHasHeaders(t,expected))||null;
+}
+function findStarsListTable(doc,kind){
+  // The Wiki page is structured as: Stars List -> Star Powers / Bonus Stars tabs -> table.
+  // Prefer tables physically inside the Stars List section, then fall back to header matching.
+  const expected=kind==='star'
+    ? ['star','cost','power']
+    : ['name','cost','description'];
+  const candidates=sectionTables(doc,'Stars List');
+  const hit=candidates.find(t=>tableHasHeaders(t,expected));
+  if(hit)return hit;
+
+  // Some MediaWiki/tabber renderings place the table outside the heading's direct
+  // sibling chain. Header matching still identifies the correct tab without any
+  // champion-specific hard-coded data.
+  return findTableByHeaders(doc,expected);
+}
+function cellLines(td){
+  if(!td)return [];
+  const clone=td.cloneNode(true);
+  clone.querySelectorAll('br').forEach(x=>x.replaceWith('\n'));
+  clone.querySelectorAll('div,p,li,section,article,figcaption').forEach(x=>{if(x!==clone)x.insertAdjacentText('afterend','\n')});
+  return String(clone.textContent||'').split(/\n+/).map(normalizeName).filter(Boolean);
+}
+function cellPlain(td){return normalizeName(td?.textContent||'')}
+function numericCost(td){
+  const text=cellPlain(td);
+  const nums=[...text.matchAll(/\b\d+\b/g)].map(m=>m[0]);
+  return nums.length?nums.join(' + '):text;
+}
+function starLevelFromCell(td,fallback){
+  const text=cellPlain(td);
+  const explicit=(text.match(/★/g)||[]).length;
+  if(explicit)return explicit;
+  const imgs=[...td.querySelectorAll('img')];
+  const alt=imgs.map(x=>`${x.getAttribute('alt')||''} ${x.getAttribute('title')||''}`).join(' ');
+  const n=alt.match(/\b([1-9])\s*star/i);
+  if(n)return Number(n[1]);
+  return fallback;
+}
+function extractPowerName(td){
+  if(!td)return '';
+  const candidates=[...td.querySelectorAll('a,b,strong')].map(x=>normalizeName(x.textContent)).filter(Boolean);
+  const useful=candidates.find(x=>x.length<=80 && !/^\d+$/.test(x));
+  if(useful)return useful;
+  const lines=cellLines(td);
+  return lines.find(x=>!/^\d+$/.test(x))||cellPlain(td);
+}
+function parseStarPowersTable(table){
+  if(!table)return [];
+  const rows=[...table.querySelectorAll('tr')];
+  const out=[];
+  for(let ri=0;ri<rows.length;ri++){
+    const cells=[...rows[ri].querySelectorAll(':scope > th,:scope > td')];
+    if(cells.length<3)continue;
+    const first=cellPlain(cells[0]);
+    if(/^(star|stars)$/i.test(first))continue;
+    let starCell=cells[0], costCell=cells[1], nameCell, descCell;
+    if(cells.length>=4){
+      nameCell=cells[2]; descCell=cells[3];
+    }else{
+      // Some Wiki renderings merge the Power name and description into one cell.
+      nameCell=cells[2]; descCell=cells[2];
+    }
+    const name=extractPowerName(nameCell);
+    if(!name||/^(power|name|description)$/i.test(name))continue;
+    let desc=cellPlain(descCell);
+    if(cells.length>=4){
+      const n=cellPlain(nameCell);
+      if(desc===n)desc='';
+    }else{
+      const lines=cellLines(descCell);
+      if(lines.length>1)desc=lines.slice(1).join(' ');
+      else desc='';
+    }
+    const level=starLevelFromCell(starCell,out.length+1);
+    const cost=numericCost(costCell);
+    // Never clamp the source star level to 6. A future constellation may expose
+    // more than six levels; the renderer decides how to display special levels.
+    out.push({starLevel:level,star:level>6?'RUNE':'★'.repeat(Math.max(1,level)),name,desc,cost,kind:level>6?'rune':'star'});
+  }
+  return out;
+}
+function runeStarAsset(doc){
+  if(!doc)return '';
+  const candidates=[];
+  for(const node of doc.querySelectorAll('a[href],figure,img,span,div,td,th')){
+    const text=normalizeName(node.textContent||'');
+    const alt=normalizeName(node.getAttribute?.('alt')||'');
+    const title=normalizeName(node.getAttribute?.('title')||'');
+    if(!/rune star/i.test(`${text} ${alt} ${title}`))continue;
+    if(node.matches?.('img'))candidates.push(node);
+    candidates.push(...(node.querySelectorAll?.('img')||[]));
+    const parent=node.closest?.('td,th,figure,a,div');
+    if(parent)candidates.push(...(parent.querySelectorAll?.('img')||[]));
+  }
+  for(const img of [...new Set(candidates)]){
+    const vals=[img.getAttribute('src'),img.getAttribute('data-src'),img.getAttribute('data-lazy-src'),img.currentSrc].filter(Boolean);
+    const srcset=img.getAttribute('srcset')||'';
+    if(srcset)vals.push(...srcset.split(',').map(x=>x.trim().split(/\s+/)[0]).filter(Boolean));
+    for(const v of vals){
+      const abs=absoluteWikiAsset(v);
+      if(abs)return abs;
+    }
+  }
+  return '';
+}
+function hasRuneStarNode(doc){
+  if(!doc)return false;
+  return [...doc.querySelectorAll('a,h2,h3,h4,h5,h6,th,td,span,div')]
+    .some(n=>/^rune star(?:s)?$/i.test(normalizeName(n.textContent||'')));
+}
+function parseBonusStarsTable(table){
+  if(!table)return [];
+  const rows=[...table.querySelectorAll('tr')];
+  const out=[];
+  for(let ri=0;ri<rows.length;ri++){
+    const cells=[...rows[ri].querySelectorAll(':scope > th,:scope > td')];
+    if(cells.length<3)continue;
+    const first=cellPlain(cells[0]);
+    if(/^(name|bonus star)$/i.test(first))continue;
+    const name=cellPlain(cells[0]);
+    const cost=numericCost(cells[1]);
+    const desc=cellPlain(cells[2]);
+    if(!name||!desc)continue;
+    out.push({name,cost,desc});
+  }
+  return out;
+}
+async function loadWikiChampion(champ){
+  const page=`LoR:${champ.wikiPage||champ.name}/PoC`;
+  const pageUrl=`https://wiki.leagueoflegends.com/en-us/${encodeURIComponent(page).replace(/%3A/g,':').replace(/%2F/g,'/')}`;
+  let html='';
+  let lastErr=null;
+  for(const target of [pageUrl,...CORS_PROXIES.map(fn=>fn(pageUrl))]){
+    try{ html=await fetchText(target,20000); if(html && html.length>1000)break; }catch(e){lastErr=e}
+  }
+  // If the normal page fetch failed, fall back to MediaWiki API parse output.
+  if(!html || html.length<1000){
+    try{
+      const json=await fetchJSON(wikiApiUrl({page,prop:'text'}),20000);
+      html=json?.parse?.text?.['*']||'';
+    }catch(e){lastErr=e}
+  }
+  if(!html)throw lastErr||new Error(`Wiki page missing: ${champ.name}`);
+  const doc=new DOMParser().parseFromString(html,'text/html');
+
+  let circle=circleFromNode(doc);
+  if(!circle){const file=circleFileFromHtml(html);if(file)circle=championCircleAsset(file)}
+  champ.img=circle||champ.img||'';
+
+  const detectedRegions=extractChampionRegions(doc);
+  if(detectedRegions.length)champ.regions=[...new Set(detectedRegions)];
+
+  const starTable=findStarsListTable(doc,'star');
+  const bonusTable=findStarsListTable(doc,'bonus');
+  const stars=parseStarPowersTable(starTable);
+  const bonus=parseBonusStarsTable(bonusTable);
+
+  // Spirit Blossom and any future region using Rune Stars should get a real
+  // seventh selectable slot instead of pretending it is seven ordinary stars.
+  // Detect the Rune Star from the live Wiki page; do not hard-code a champion list.
+  const hasRune=hasRuneStarNode(doc);
+  const runeImg=runeStarAsset(doc);
+  if(hasRune && !stars.some(x=>x.kind==='rune')){
+    stars.push({star:'RUNE',starLevel:7,kind:'rune',name:'Rune Star',desc:'',cost:'',img:runeImg});
+  }
+  if(stars.length)champ.starPowers=stars; else champ.starPowers=[];
+  if(bonus.length)champ.bonusStars=bonus; else champ.bonusStars=[];
+  champ.hasRuneStar=hasRune;
+  champ._wikiLoaded=true;
+  return champ;
+}
+function mergeChampionData(roster){
+  const old=DATA.champions||[];
+  return roster.map(c=>{
+    const o=old.find(x=>x.name===c.name);
+    const oldCircle=championCircleAsset(o?.img||'');
+    const newCircle=championCircleAsset(c?.img||'');
+    return {...o,...c,regions:c.regions?.length?c.regions:(o?.regions||[]),img:newCircle||oldCircle||''};
+  });
+}
+function ensurePowerTestData(){
+  const test={id:'P0908',name:'Adaptation',rarity:'Common',desc:"When you summon a champion, grant it two random keywords allies don't have.",icon:'https://wiki.leagueoflegends.com/en-us/images/thumb/P0908.png/400px-P0908.png?b8963',source:'wiki',sourceUrl:'https://wiki.leagueoflegends.com/en-us/LoR:Adaptation'};
+  if(!Array.isArray(DATA.powers))DATA.powers=[];
+  const at=DATA.powers.findIndex(p=>String(p?.id||'').toUpperCase()==='P0908');
+  if(at<0)DATA.powers.unshift(test); else DATA.powers[at]={...DATA.powers[at],...test};
+}
+function restoreCachedData(){
+  try{
+    let raw=localStorage.getItem(DATA_CACHE_KEY);
+    if(!raw){
+      for(const key of LEGACY_CACHE_KEYS){
+        raw=localStorage.getItem(key);
+        if(raw)break;
+      }
+    }
+    if(!raw)return false;
+    const cached=JSON.parse(raw); if(!cached)return false;
+    DATA={...DATA,...cached};
+    ensurePowerTestData();
+    return true;
+  }catch(e){return false}
+}
+function saveCachedData(){
+  try{localStorage.setItem(DATA_CACHE_KEY,JSON.stringify(DATA));localStorage.setItem(DATA_CACHE_TS,new Date().toISOString())}catch(e){}
+}
+async function loadLiveData(){
+  const cached=restoreCachedData();
+  ensurePowerTestData();
+  if(cached){
+    setDataStatus('Using cached live LoR data while checking sources…');
+    renderAll();
+  }
+
+  // Champion roster is rendered independently as soon as it arrives instead of
+  // waiting for Relics / Powers / Adventures. This keeps the main Champion UI fast.
+  const rosterPromise=loadWikiRoster().then(roster=>{
+    const merged=mergeChampionData(roster);
+    if(!merged.length)return;
+    DATA.champions=merged;
+    const inRegion=DATA.champions.filter(c=>Array.isArray(c.regions)&&c.regions.includes(state.region));
+    if(!inRegion.some(c=>c.name===state.champion)){
+      state.champion=inRegion[0]?.name||DATA.champions[0]?.name||'';
+      state.stars=new Set(); state.bonus=new Set();
+    }
+    saveCachedData();
+    renderAll();
+    setDataStatus(`Champion roster loaded · ${new Date().toLocaleString('en-US')}`);
+    return merged;
+  }).catch(()=>null);
+
+  const results=await Promise.allSettled([
+    loadRuneterraSource(SOURCES.relics,'relic'),
+    loadWikiPowers(),
+    loadWikiRelicData(),
+    loadWikiAdventures()
+  ]);
+  let changed=false;
+  if(results[0].status==='fulfilled'){DATA.relics=results[0].value;changed=true}
+  if(results[1].status==='fulfilled' && Array.isArray(results[1].value) && results[1].value.length){
+    DATA.powers=results[1].value.map(p=>({...p,rarity:powerRarity(p),icon:p.icon||`https://wiki.leagueoflegends.com/en-us/images/thumb/${String(p.id||'').toUpperCase()}.png/400px-${String(p.id||'').toUpperCase()}.png`}));
+    changed=true;
+  }
+  // Always restore the known-good Wiki record if the live Power category/API is unavailable.
+  // This prevents an empty Power selector after a transient source failure or stale cache.
+  const powerCountBefore=Array.isArray(DATA.powers)?DATA.powers.length:0;
+  ensurePowerTestData();
+  if((Array.isArray(DATA.powers)?DATA.powers.length:0)!==powerCountBefore)changed=true;
+  if(results[2].status==='fulfilled' && results[2].value?.length){DATA.relics=results[2].value;changed=true}
+  if(results[3].status==='fulfilled'){
+    const adv=results[3].value||{};
+    DATA.adventures=adv.adventures||adv;
+    DATA.eventCampaigns=adv.eventCampaigns||{};
+    changed=true;
+  }
+  if(changed){
+    saveCachedData();
+    renderAll();
+    setDataStatus(`Live data loaded · ${new Date().toLocaleString('en-US')}`);
+  }else if(!cached){
+    setDataStatus('Live sources unavailable · using built-in fallback data');
+  }
+
+  // Do not block the initial Champion list on the selected Champion's full page.
+  // Load its exact circle / Stars data after the roster is available.
+  const roster=await rosterPromise;
+  if(roster?.length){
+    try{await refreshSelectedChampionFromWiki()}catch(e){}
+  }
+}
+async function refreshSelectedChampionFromWiki(){
+  const c=DATA.champions.find(x=>x.name===state.champion);
+  if(!c)return;
+  if(c._wikiLoaded && c.starPowers?.length && c.bonusStars?.length){
+    DATA.stars=c.starPowers; DATA.bonus=c.bonusStars; renderAll(); return;
+  }
+  try{
+    const fresh=await loadWikiChampion(c);
+    const idx=DATA.champions.findIndex(x=>x.name===fresh.name);
+    if(idx>=0)DATA.champions[idx]=fresh;
+    DATA.stars=fresh.starPowers||[];
+    DATA.bonus=fresh.bonusStars||[];
+    saveCachedData(); renderAll();
+    setDataStatus(`Wiki constellation loaded · ${fresh.name}`);
+  }catch(e){
+    setDataStatus(`Wiki constellation load failed · ${e?.message||e}`);
+    renderAll();
+  }
+}
+let state={region:'Bilgewater',champion:'',champSearch:'',adventureCategory:'World Adventures',adventure:'',adventureDifficulty:'',stars:new Set(),bonus:new Set(),relics:[],powers:[],notes:''};
+let modalType=null;
+function el(id){return document.getElementById(id)}
+function initChampionSearch(){const input=el('champSearch');const clear=el('champSearchClear');if(!input)return;input.addEventListener('input',()=>{state.champSearch=input.value;renderChampions()});input.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();clearChampionSearch()}});if(clear)clear.addEventListener('click',clearChampionSearch)}
+function adventureRowsHaveStars(rows){
+  return (Array.isArray(rows)?rows:[]).filter(a=>/\bstars?\b/i.test(String(a?.difficulty||'')));
+}
+function adventureNameKey(name){return normalizeName(name).toLocaleLowerCase();}
+function adventureStarsKey(difficulty){
+  const m=String(difficulty||'').match(/(\d+(?:\.\d+)?)\s*Stars?/i);
+  return m?m[1]:normalizeName(difficulty).toLocaleLowerCase();
+}
+function adventureIdentityKey(row){
+  const name=adventureNameKey(row?.name);
+  const stars=adventureStarsKey(row?.difficulty);
+  return name&&stars?`${name}|${stars}`:'';
+}
+function getNonEventAdventureNames(){
+  // "Same adventure" means SAME NAME + SAME STAR DIFFICULTY.
+  // A same-named Event adventure at a different star level must remain visible.
+  const blocked=new Set();
+  for(const cat of ['World Adventures','Nightmare Adventures']){
+    for(const row of adventureRowsHaveStars(DATA.adventures?.[cat])){
+      const key=adventureIdentityKey(row);
+      if(key)blocked.add(key);
+    }
+  }
+  return blocked;
+}
+function getEventAdventureGroups(){
+  const groups=DATA.eventCampaigns||{};
+  const blocked=getNonEventAdventureNames();
+  const out=[];const seen=new Set();
+  const names=[...EVENT_CAMPAIGN_CATEGORIES];
+  for(const name of Object.keys(groups))if(!names.some(x=>x.toLocaleLowerCase()===name.toLocaleLowerCase()))names.push(name);
+  for(const groupName of names){
+    const rows=adventureRowsHaveStars(groups[groupName]);
+    const items=[];
+    for(const row of rows){
+      const key=adventureIdentityKey(row);
+      if(!key||blocked.has(key)||seen.has(key))continue;
+      seen.add(key);items.push(row);
+    }
+    if(items.length)out.push({name:groupName,rows:items});
+  }
+  // Fallback to the main Event Campaigns bucket if tab parsing was flattened.
+  if(!out.length){
+    const rows=adventureRowsHaveStars(DATA.adventures?.['Event Campaigns']);
+    const items=[];
+    for(const row of rows){
+      const key=adventureIdentityKey(row);
+      if(!key||blocked.has(key)||seen.has(key))continue;
+      seen.add(key);items.push(row);
+    }
+    if(items.length)out.push({name:'Event Campaigns',rows:items});
+  }
+  return out;
+}
+function getAdventureList(category){
+  if(category==='Event Campaigns')return getEventAdventureGroups().flatMap(g=>g.rows);
+  return adventureRowsHaveStars(DATA.adventures?.[category]);
+}
+function renderAdventureOptions(){
+  const cat=state.adventureCategory||'World Adventures',select=el('adventureSelect'),input=el('adventureInput'),dl=el('adventureList');
+  if(!select||!input)return;
+  let html='<option value="">Select adventure...</option>';
+  let list=[];
+  if(cat==='Event Campaigns'){
+    const groups=getEventAdventureGroups();
+    list=groups.flatMap(g=>g.rows);
+    for(const group of groups){
+      html+=`<option value="" disabled class="event-group-header">${esc(group.name)}</option>`;
+      html+=group.rows.map(a=>`<option value="${esc(a.name)}">${esc(a.name)} — ${esc(a.difficulty)}</option>`).join('');
+    }
+  }else{
+    list=getAdventureList(cat);
+    html+=list.map(a=>`<option value="${esc(a.name)}">${esc(a.name)} — ${esc(a.difficulty)}</option>`).join('');
+  }
+  select.innerHTML=html;
+  if(dl)dl.innerHTML=list.map(a=>`<option value="${esc(a.name)}"></option>`).join('');
+  const current=list.find(a=>a.name===state.adventure);
+  if(current){select.value=current.name;input.value=current.name;el('adventureDifficulty').textContent=current.difficulty}
+  else {select.value='';if(!state.adventure)input.value='';el('adventureDifficulty').textContent=state.adventureDifficulty||'—'}
+  const status=el('adventureStatus');
+  const label=cat;
+  if(status)status.textContent=list.length?`${list.length} adventures · ${label}`:'No adventures found for this category';
+}
+function setAdventureCategory(cat){state.adventureCategory=cat;state.adventure='';state.adventureDifficulty='';renderAdventureOptions()}
+function setAdventure(name){
+  const list=getAdventureList(state.adventureCategory),clean=normalizeName(name);
+  const found=list.find(a=>a.name.toLocaleLowerCase()===clean.toLocaleLowerCase())||list.find(a=>a.name.toLocaleLowerCase().startsWith(clean.toLocaleLowerCase()));
+  state.adventure=found?.name||clean;state.adventureDifficulty=found?.difficulty||'';
+  const select=el('adventureSelect'),input=el('adventureInput'),diff=el('adventureDifficulty');
+  if(select)select.value=found?.name||'';if(input)input.value=found?.name||clean;if(diff)diff.textContent=found?.difficulty||'—';
+}
+function initAdventureUI(){
+  const cat=el('adventureCategory'),select=el('adventureSelect'),input=el('adventureInput');
+  if(cat)cat.addEventListener('change',()=>setAdventureCategory(cat.value));
+  if(select)select.addEventListener('change',()=>setAdventure(select.value));
+  if(input){input.addEventListener('change',()=>setAdventure(input.value));input.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();setAdventure(input.value)}})}
+  renderAdventureOptions();
+}
+function renderRegions(){const allCard=`<button class="region-card region-all ${state.region==='ALL'?'active':''}" onclick="setRegion('ALL')" title="ALL" aria-label="ALL"><span class="region-all-icon">✦</span><span class="region-text">ALL</span></button>`;el('regions').innerHTML=allCard+DATA.regions.map(r=>`<button class="region-card ${r.name===state.region?'active':''}" onclick="setRegion('${r.name}')" title="${esc(r.name)}" aria-label="${esc(r.name)}"><img class="region-img" src="${r.img}" alt="${esc(r.name)}" onerror="this.style.display='none'"><span class="region-text">${esc(r.name)}</span></button>`).join('')}
+function getRegionChampions(r){
+  const list=r==='ALL'?DATA.champions:DATA.champions.filter(c=>Array.isArray(c.regions)&&c.regions.includes(r));
+  return [...list].sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base'}));
+}
+async function setRegion(r){
+  state.region=r;
+  state.champSearch='';
+  const list=getRegionChampions(r);
+  // Always switch to the first champion shown for the newly selected region.
+  // This prevents stale constellation data / "not found" states when changing regions.
+  state.champion=list[0]?.name||'';
+  state.stars=new Set();
+  state.bonus=new Set();
+  DATA.stars=[];
+  DATA.bonus=[];
+  el('regionLabel').textContent=r==='ALL'?'ALL':r;
+  const input=el('champSearch');
+  if(input) input.value='';
+  renderAll();
+  if(state.champion){
+    try{await refreshSelectedChampionFromWiki()}catch(e){setDataStatus(`Wiki constellation load failed · ${e?.message||e}`)}
+  }
+}
+function renderChampions(){const q=(state.champSearch||'').trim().toLocaleLowerCase();let list;if(q){list=DATA.champions.filter(c=>c.name.toLocaleLowerCase().startsWith(q));}else{list=state.region==='ALL'?DATA.champions:DATA.champions.filter(c=>Array.isArray(c.regions)&&c.regions.includes(state.region));}list=[...list].sort((a,b)=>a.name.localeCompare(b.name,undefined,{sensitivity:'base'}));el('champions').innerHTML=list.length?list.map(c=>`<button class="champ ${c.name===state.champion?'active':''}" data-champ-index="${DATA.champions.indexOf(c)}">${c.img?`<img class="portrait" src="${esc(c.img)}" alt="${esc(c.name)}" loading="lazy" onerror="this.onerror=null;this.removeAttribute('src');this.classList.add('img-missing')">`:''}<div class="champ-name">${esc(c.name)}</div><div class="region">${c.regions.map(r=>`<span class="region-badge">${esc(r)}</span>`).join('')}</div></button>`).join(''):`<div class="champ-search-empty">No champions found for “${esc(state.champSearch)}”</div>`;document.querySelectorAll('#champions .champ').forEach(btn=>btn.onclick=()=>setChampion(DATA.champions[Number(btn.dataset.champIndex)].name));const input=el('champSearch');const clear=el('champSearchClear');if(input&&input.value!==state.champSearch)input.value=state.champSearch||'';if(clear)clear.style.display=state.champSearch?'block':'none'}
+function clearChampionSearch(){state.champSearch='';el('champSearch').value='';renderChampions();el('champSearch').focus()}
+
+async function setChampion(c){state.champion=c;state.stars=new Set();state.bonus=new Set();el('champLabel').textContent=c;DATA.stars=[];DATA.bonus=[];renderAll();await refreshSelectedChampionFromWiki()}
+function renderStars(){el('stars').innerHTML=DATA.stars.map((s,i)=>{const starText=String(s.star||'');const count=(starText.match(/★/g)||[]).length;const marker=s.kind==='rune'?`<div class="stars rune-text" title="Rune Star" aria-label="Rune Star">RUNE</div>`:`<div class="stars stars-${Math.min(Math.max(count,1),6)}" title="${count} Star${count===1?'':'s'}" aria-label="${count} Star${count===1?'':'s'}">${esc(starText)}</div>`;return `<label class="star">${marker}<input class="check" type="checkbox" ${state.stars.has(i)?'checked':''} onchange="toggleSet('stars',${i},this.checked)" aria-label="${s.kind==='rune'?'Rune Star':'Star Power '+(i+1)}"></label>`}).join('')}
+function getBonusColumnCount(count){
+  // Keep Bonus Stars compact and aim to fit the live Wiki list into two rows.
+  // The actual number of entries still comes entirely from the live Wiki table.
+  if(!count)return 1;
+  return Math.max(1,Math.ceil(count/2));
+}
+function renderBonus(){
+  const count=DATA.bonus.length;
+  const cols=getBonusColumnCount(count);
+  const grid=el('bonus');
+  grid.style.setProperty('--bonus-cols',cols);
+  grid.style.setProperty('--bonus-cols-mobile',cols);
+  grid.innerHTML=DATA.bonus.map((b,i)=>`<label class="bonus-item"><div class="bonus-number">${i+1}</div><input class="check" type="checkbox" ${state.bonus.has(i)?'checked':''} onchange="toggleSet('bonus',${i},this.checked)" aria-label="Bonus Star ${i+1}"></label>`).join('');
+}
+function toggleAllSet(type){const source=type==='stars'?DATA.stars:DATA.bonus;const target=type==='stars'?state.stars:state.bonus;if(!source.length)return;const allSelected=source.every((_,i)=>target.has(i));if(allSelected)target.clear();else source.forEach((_,i)=>target.add(i));renderAll()}
+function renderRelics(){
+  el('relicCount').textContent=`${state.relics.length} / 3`;
+  const cards=state.relics.map((idx,n)=>{
+    const r=DATA.relics[idx];
+    const cat=relicCategory(r);
+    const catClass=relicCategoryClass(r);
+    return `<div class="slot relic-option ${catClass}">
+      <div class="slot-index">${n+1}</div>
+      <div class="relic-icon-cell"><div class="icon"><img src="${esc(r.icon)}" alt="${esc(r.name)}" loading="lazy" onerror="this.style.display='none'"></div></div>
+      <div class="relic-name-cell"><div class="name">${esc(r.name)}</div></div>
+      <div class="relic-rarity-cell">${esc(cat)}</div>
+      <div class="relic-desc-cell">${esc(r.desc)}</div>
+      <button class="danger" onclick="removeRelic(${n})" aria-label="Remove ${esc(r.name)}">✕</button>
+    </div>`;
+  }).join('');
+  const add=state.relics.length<3
+    ? '<button class="add" onclick="openModal(\'relic\')">＋ Add Relic</button>'
+    : '<button class="add" disabled>3 / 3 Relic Slots Full</button>';
+  el('relicSlots').innerHTML=(cards?`<div class="slot-grid">${cards}</div>`:'')+add;
+}
+function removeRelic(n){state.relics.splice(n,1);renderRelics()}
+function powerOrderLabel(n,total){return n===total-1?'First Power':String(total-n)}
+function renderPowers(){
+  el('powerCount').textContent=`${state.powers.length} selected`;
+  const total=state.powers.length;
+  const rows=state.powers.map((idx,originalIndex)=>({idx,originalIndex})).reverse().map((item,displayIndex)=>{
+    const p=DATA.powers[item.idx];if(!p)return '';
+    const rarityClass=powerRarityClass(p);
+    return `<div class="power-row ${rarityClass}"><div class="power-index">${powerOrderLabel(displayIndex,total)}</div><div class="power-icon"><img src="${esc(p.icon)}" alt="${esc(p.name)}" loading="lazy" onerror="this.style.display='none'"></div><div class="power-name">${esc(p.name)}</div><div class="power-rarity">${esc(p.rarity||'')}</div><div class="power-desc">${esc(p.desc||'')}</div><button class="danger" onclick="removePower(${item.originalIndex})" aria-label="Remove ${esc(p.name)}">✕</button></div>`;
+  }).join('');
+  el('powerList').innerHTML=(rows?`<div class="power-table">${rows}</div>`:'')+`<button class="add" onclick="openModal('power')">＋ Add Power</button>`;
+}
+function removePower(n){state.powers.splice(n,1);renderPowers()}
+function openModal(type){modalType=type;el('modalTitle').textContent=type==='relic'?'Select Relic':'Select Power';el('modalSearch').value='';el('modal').classList.add('open');document.body.classList.add('modal-open');renderModalOptions();setTimeout(()=>el('modalSearch').focus(),30)}
+function closeModal(){el('modal').classList.remove('open');modalType=null;document.body.classList.remove('modal-open')}
+function renderModalOptions(){
+  const q=el('modalSearch').value.trim().toLocaleLowerCase();
+  const arr=modalType==='relic'?DATA.relics:DATA.powers;
+  const filtered=arr.map((x,i)=>({x,i})).filter(o=>{
+    if(!q)return true;
+    // Relics: match name prefix OR description text, case-insensitively.
+    // Power search remains name-prefix based.
+    const name=String(o.x.name||'').trim().toLocaleLowerCase();
+    if(modalType==='relic'){
+      const desc=String(o.x.desc||'').toLocaleLowerCase();
+      return name.startsWith(q)||desc.includes(q);
+    }
+    return name.startsWith(q);
+  });
+  if(!filtered.length){
+    el('modalOptions').innerHTML=`<div class="desc">No results. ${modalType==='relic'?'Search matches the beginning of the relic name or any text in its description.':'Search matches the beginning of the power name, case-insensitively.'}</div>`;
+    return;
+  }
+  if(modalType!=='relic'){
+    el('modalOptions').innerHTML=filtered.map((o,row)=>`<button class="option power-option ${powerRarityClass(o.x)}" onclick="addSelected(${o.i})"><div class="power-index">${row+1}</div><div class="power-icon"><img src="${esc(o.x.icon)}" alt="${esc(o.x.name)}" loading="lazy" onerror="this.style.display='none'"></div><div class="power-name">${esc(o.x.name)}</div><div class="power-rarity">${esc(o.x.rarity||'')}</div><div class="power-desc">${esc(o.x.desc||'')}</div></button>`).join('');
+    return;
+  }
+  // Relics are displayed as a 5-column table:
+  // 1 = result order, 2 = icon, 3 = name, 4 = rarity, 5 = description.
+  // Rarity is visual metadata only; it is never part of search.
+  el('modalOptions').innerHTML=filtered.map((o,row)=>{
+    const cat=relicCategory(o.x);
+    const cls=relicCategoryClass(o.x);
+    return `<button class="option relic-option ${cls}" onclick="addSelected(${o.i})"><div class="relic-index-cell">${row+1}</div><div class="relic-icon-cell"><div class="icon"><img src="${esc(o.x.icon)}" alt="${esc(o.x.name)}" loading="lazy" onerror="this.style.display='none'"></div></div><div class="relic-name-cell"><div class="name">${esc(o.x.name)}</div></div><div class="relic-rarity-cell">${esc(cat||'')}</div><div class="relic-desc-cell">${esc(o.x.desc||'')}</div></button>`;
+  }).join('')||'<div class="desc">No relic data loaded.</div>';
+}
+function addSelected(i){if(modalType==='relic'){if(state.relics.length<3)state.relics.push(i);renderRelics()}else{state.powers.push(i);renderPowers()}renderSummary();closeModal()}
+function renderSummary(){}
+function renderAll(){renderAdventureOptions();renderRegions();renderChampions();renderStars();renderBonus();renderRelics();renderPowers();el('champLabel').textContent=state.champion;}
+async function resetBuild(){state={region:'Bilgewater',champion:'',champSearch:'',adventureCategory:'World Adventures',adventure:'',adventureDifficulty:'',stars:new Set(),bonus:new Set(),relics:[],powers:[],notes:''};el('playerNotes').value='';renderAll();try{await refreshSelectedChampionFromWiki()}catch(e){}}
+
+let imagePreviewUrl='';
+let imagePreviewFilename='LoR_PoC_Build.png';
+let pendingSharedBuild=null;
+function stablePowerKey(p){return String(p?.id||p?.name||'').trim().toUpperCase()}
+function stableRelicKey(r){return String(r?.id||r?.name||'').trim().toLocaleLowerCase()}
+function stableStarKey(s){return `${String(s?.kind||'star')}|${String(s?.star||'')}|${String(s?.name||'')}`.toLocaleLowerCase()}
+function stableBonusKey(b){return String(b?.name||b?.id||'').trim().toLocaleLowerCase()}
+function encodeSharePayload(payload){
+  const json=JSON.stringify(payload);
+  const bytes=new TextEncoder().encode(json);
+  let binary='';
+  const chunk=0x8000;
+  for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+  return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function decodeSharePayload(token){
+  try{
+    const base=String(token||'').replace(/-/g,'+').replace(/_/g,'/');
+    const padded=base+'='.repeat((4-base.length%4)%4);
+    const binary=atob(padded);const bytes=Uint8Array.from(binary,c=>c.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  }catch(e){return null}
+}
+function buildSharePayload(){
+  state.notes=el('playerNotes')?.value||state.notes||'';
+  return {v:1,region:state.region||'',champion:state.champion||'',adventureCategory:state.adventureCategory||'',adventure:state.adventure||'',adventureDifficulty:state.adventureDifficulty||'',stars:[...state.stars].map(i=>DATA.stars[i]).filter(Boolean).map(stableStarKey),bonus:[...state.bonus].map(i=>DATA.bonus[i]).filter(Boolean).map(stableBonusKey),relics:state.relics.map(i=>DATA.relics[i]).filter(Boolean).map(stableRelicKey),powers:state.powers.map(i=>DATA.powers[i]).filter(Boolean).map(stablePowerKey),notes:state.notes||''};
+}
+const SHARE_PAGE_URL='https://penguinsgor.wixsite.com/penguinsgorlor/blank-6';
+function buildShareURL(){
+  const token=encodeSharePayload(buildSharePayload());
+  // Public share URL: use the user's Wix page as the destination.
+  // The build token is kept in the URL fragment so it is not sent to servers.
+  return SHARE_PAGE_URL+'#build='+token;
+}
+async function shareBuildLink(){
+  try{
+    const url=buildShareURL();
+    let copied=false;
+    try{if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(url);copied=true}}catch(e){}
+    if(navigator.share){
+      try{await navigator.share({title:'LoR PoC Build',text:'LoR Path of Champions build',url});showExportStatus('success','Build link ready.');return}catch(e){if(e?.name==='AbortError')return}}
+    if(copied){showExportStatus('success','Wix build link copied.');}
+    else{window.prompt('Copy this build link:',url);showExportStatus('success','Wix build link created.');}
+  }catch(e){showExportStatus('error',`Could not create build link: ${e?.message||e}`)}
+}
+function findByStableKey(arr,key,fn){const target=String(key||'').toLocaleLowerCase();return (arr||[]).findIndex(x=>String(fn(x)||'').toLocaleLowerCase()===target)}
+function applySharedBuild(){
+  if(!pendingSharedBuild)return;
+  const p=pendingSharedBuild;pendingSharedBuild=null;
+  if(p.region && (p.region==='ALL'||DATA.regions.some(r=>r.name===p.region)))state.region=p.region;
+  if(p.champion && DATA.champions.some(c=>c.name===p.champion))state.champion=p.champion;
+  state.adventureCategory=p.adventureCategory||state.adventureCategory;
+  state.adventure=p.adventure||'';state.adventureDifficulty=p.adventureDifficulty||'';
+  state.relics=(Array.isArray(p.relics)?p.relics:[]).map(k=>findByStableKey(DATA.relics,k,stableRelicKey)).filter(i=>i>=0).slice(0,3);
+  state.powers=(Array.isArray(p.powers)?p.powers:[]).map(k=>findByStableKey(DATA.powers,k,stablePowerKey)).filter(i=>i>=0);
+  state.stars=new Set((Array.isArray(p.stars)?p.stars:[]).map(k=>findByStableKey(DATA.stars,k,stableStarKey)).filter(i=>i>=0));
+  state.bonus=new Set((Array.isArray(p.bonus)?p.bonus:[]).map(k=>findByStableKey(DATA.bonus,k,stableBonusKey)).filter(i=>i>=0));
+  state.notes=String(p.notes||'');
+  const notes=el('playerNotes');if(notes)notes.value=state.notes;
+  state.champSearch='';
+  renderAll();
+  if(state.region)el('regionLabel').textContent=state.region;
+}
+function readSharedBuildFromHash(){
+  // Standalone HTML: read #build=... directly.
+  let hash=location.hash.replace(/^#/,'');
+  if(hash.startsWith('build=')){
+    const p=decodeSharePayload(hash.slice(6));
+    if(p)pendingSharedBuild=p;
+    return;
+  }
+  // Also accept ?build=... so a Wix/Velo page can forward the token into the embed.
+  try{
+    const q=new URLSearchParams(location.search||'');
+    const token=q.get('build');
+    if(token){const p=decodeSharePayload(token);if(p)pendingSharedBuild=p;}
+  }catch(e){}
+}
+function closeImagePreview(){
+  const box=el('imagePreview');if(box)box.classList.remove('show');
+  box?.setAttribute('aria-hidden','true');
+  if(imagePreviewUrl){try{URL.revokeObjectURL(imagePreviewUrl)}catch(e){}imagePreviewUrl='';}
+  document.body.classList.remove('modal-open');
+}
+function showImagePreview(blob,filename){
+  closeImagePreview();
+  imagePreviewFilename=filename;
+  imagePreviewUrl=URL.createObjectURL(blob);
+  const img=el('imagePreviewImg');const box=el('imagePreview');
+  if(!img||!box)throw new Error('Image preview is unavailable.');
+  img.src=imagePreviewUrl;box.classList.add('show');box.setAttribute('aria-hidden','false');document.body.classList.add('modal-open');
+}
+function downloadPreviewImage(){
+  if(!imagePreviewUrl)return;
+  const a=document.createElement('a');a.href=imagePreviewUrl;a.download=imagePreviewFilename;a.rel='noopener';a.style.display='none';document.body.appendChild(a);try{a.click()}finally{setTimeout(()=>a.remove(),500)}
+}
+async function sharePreviewImage(){
+  if(!imagePreviewUrl)return;
+  try{
+    const r=await fetch(imagePreviewUrl);const blob=await r.blob();const file=new File([blob],imagePreviewFilename,{type:'image/png'});
+    if(navigator.share&&navigator.canShare?.({files:[file]})){await navigator.share({files:[file],title:'LoR PoC Build',text:'LoR Path of Champions build'});return}
+    downloadPreviewImage();
+  }catch(e){downloadPreviewImage()}
+}
+function roundRect(ctx,x,y,w,h,r,fill,stroke){
+  const rr=Math.min(r,w/2,h/2);ctx.beginPath();ctx.moveTo(x+rr,y);ctx.arcTo(x+w,y,x+w,y+h,rr);ctx.arcTo(x+w,y+h,x,y+h,rr);ctx.arcTo(x,y+h,x,y,rr);ctx.arcTo(x,y,x+w,y,rr);ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke();}
+}
+function wrapText(ctx,text,x,y,maxWidth,lineHeight,maxLines=20){
+  const words=String(text||'').split(/\s+/);let line='',lines=[];
+  for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width>maxWidth&&line){lines.push(line);line=word;if(lines.length>=maxLines)break;}else line=test;}
+  if(lines.length<maxLines&&line)lines.push(line);
+  lines.forEach((ln,i)=>ctx.fillText(ln,x,y+i*lineHeight));
+  return lines.length*lineHeight;
+}
+function drawBadge(ctx,text,x,y){
+  ctx.font='12px Arial';const w=ctx.measureText(text).width+18;roundRect(ctx,x,y,w,22,11,'#202b3a','#465466');ctx.fillStyle='#cbd5e1';ctx.fillText(text,x+9,y+15);return w;}
+async function safeImage(src){
+  return new Promise(resolve=>{
+    if(!src)return resolve(null);
+    const img=new Image();
+    let done=false;
+    const finish=value=>{if(done)return;done=true;clearTimeout(timer);resolve(value)};
+    const timer=setTimeout(()=>finish(null),3000);
+    img.crossOrigin='anonymous';
+    img.onload=()=>{
+      try{
+        const c=document.createElement('canvas');c.width=1;c.height=1;
+        const g=c.getContext('2d');g.drawImage(img,0,0,1,1);g.getImageData(0,0,1,1);
+        finish(img);
+      }catch(e){finish(null);}
+    };
+    img.onerror=()=>finish(null);
+    img.src=src;
+  });
+}
+function drawIcon(ctx,icon,x,y,size=44){roundRect(ctx,x,y,size,size,8,'#182332','#405063');ctx.font=`${Math.round(size*.48)}px Arial`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#edf2f7';ctx.fillText(icon,x+size/2,y+size/2+1);ctx.textAlign='left';ctx.textBaseline='alphabetic';}
+function drawSectionTitle(ctx,title,y,count){roundRect(ctx,16,y,728,38,8,'#202a37','#303b4a');ctx.font='700 16px Arial';ctx.fillStyle='#edf2f7';ctx.fillText(title,30,y+25);if(count){ctx.font='12px Arial';ctx.fillStyle='#9aa8b8';ctx.textAlign='right';ctx.fillText(count,730,y+24);ctx.textAlign='left';}return y+48;}
+function showExportStatus(type,message){
+  const box=el('exportStatus');
+  box.className='export-status '+type;
+  box.textContent=message;
+}
+async function exportPNGManualFallback(){
+  const btn=document.querySelector('.export-primary');
+  const old=btn.textContent;
+  btn.disabled=true;btn.textContent='⏳ Exporting...';
+  showExportStatus('','');
+  el('exportStatus').style.display='none';
+
+  try{
+    if(!window.HTMLCanvasElement || !document.createElement('canvas').getContext){
+      throw new Error('This browser does not support Canvas export. Please use the latest Chrome or Edge.');
+    }
+
+    state.notes=el('playerNotes').value;
+
+    // Export is a poster, not a social-media crop:
+    // fixed readable width + completely dynamic height based on selected content.
+    let scale=2;
+    const W=1024;
+    const P=28;
+    const innerW=W-P*2;
+    let y=30;
+
+    const selectedStars=[...state.stars].map(i=>DATA.stars[i]).filter(Boolean);
+    const selectedBonus=[...state.bonus].map(i=>DATA.bonus[i]).filter(Boolean);
+    const selectedRelics=state.relics.map(i=>DATA.relics[i]).filter(Boolean);
+    const selectedPowers=state.powers.map(i=>DATA.powers[i]).filter(Boolean);
+    const region=DATA.regions.find(r=>r.name===state.region);
+    const champ=DATA.champions.find(c=>c.name===state.champion);
+    const noteText=(state.notes||'').trim();
+
+    // Calculate note height before drawing.
+    const noteCharsPerLine=92;
+    const noteLines=noteText ? Math.max(1,Math.ceil(noteText.length/noteCharsPerLine)) : 0;
+    const noteH=noteText ? Math.max(92,Math.min(420,54+noteLines*23)) : 0;
+
+    // Dynamic height. There is deliberately NO social-media height cap.
+    let H=0;
+    H += 178;                 // header
+    H += 8 + 78;              // identity: single compact row directly under header
+    if(state.adventure)      H += 62 + 54;
+    if(selectedStars.length)  H += 18 + 52 + selectedStars.length*68;
+    if(selectedBonus.length)  H += 18 + 52 + selectedBonus.length*64;
+    if(selectedRelics.length) H += 18 + 52 + selectedRelics.length*96;
+    if(selectedPowers.length) H += 18 + 52 + selectedPowers.length*64;
+    if(noteText)              H += 18 + 52 + noteH;
+    H += 42;                  // footer
+    H=Math.ceil(H);
+    // Keep the poster at the same 2048px-wide output format on desktop.
+    // Only reduce scale when the browser's canvas height limit would be exceeded.
+    const maxCanvasDimension=(window.matchMedia&&window.matchMedia('(max-width: 620px)').matches)?4096:8192;
+    scale=Math.min(scale, maxCanvasDimension/H);
+    scale=Math.max(.75,scale);
+
+    const canvas=document.createElement('canvas');
+    canvas.width=W*scale;
+    canvas.height=H*scale;
+
+    const ctx=canvas.getContext('2d');
+    ctx.scale(scale,scale);
+    ctx.textBaseline='alphabetic';
+
+    // Background.
+    const bg=ctx.createLinearGradient(0,0,W,H);
+    bg.addColorStop(0,'#06101c');
+    bg.addColorStop(.42,'#07192a');
+    bg.addColorStop(1,'#040b13');
+    ctx.fillStyle=bg;
+    ctx.fillRect(0,0,W,H);
+
+    const glow=ctx.createRadialGradient(W*.72,80,10,W*.72,80,420);
+    glow.addColorStop(0,'rgba(58,154,197,.20)');
+    glow.addColorStop(1,'rgba(58,154,197,0)');
+    ctx.fillStyle=glow;
+    ctx.fillRect(0,0,W,360);
+
+    function line(x1,y1,x2,y2,color='#2a5c7d',width=1){
+      ctx.beginPath();
+      ctx.moveTo(x1,y1);
+      ctx.lineTo(x2,y2);
+      ctx.strokeStyle=color;
+      ctx.lineWidth=width;
+      ctx.stroke();
+    }
+
+    function posterSection(title,count){
+      const h=52;
+      roundRect(ctx,P,y,innerW,h,12,'rgba(9,30,49,.88)','#2c6b91');
+      ctx.fillStyle='#f3c54e';
+      ctx.fillRect(P+15,y+12,5,28);
+      ctx.font='800 20px Arial';
+      ctx.fillStyle='#eef5ff';
+      ctx.fillText(title,P+31,y+32);
+
+      if(count){
+        ctx.font='12px Arial';
+        ctx.fillStyle='#8fa9c0';
+        ctx.textAlign='right';
+        ctx.fillText(count,P+innerW-18,y+31);
+        ctx.textAlign='left';
+      }
+      y+=62;
+    }
+
+    function posterRow(x,yy,w,h,fill='rgba(7,20,33,.90)'){
+      roundRect(ctx,x,yy,w,h,12,fill,'#214966');
+    }
+
+    function drawPosterBadge(text,x,yy){
+      ctx.font='12px Arial';
+      const w=ctx.measureText(text).width+20;
+      roundRect(ctx,x,yy,w,24,12,'#10263b','#365875');
+      ctx.fillStyle='#bcd0e3';
+      ctx.fillText(text,x+10,yy+16);
+      return w;
+    }
+
+    function drawPosterIcon(icon,x,yy,size=46){
+      roundRect(ctx,x,yy,size,size,10,'#10243a','#41627e');
+      ctx.font=`${Math.round(size*.5)}px Arial`;
+      ctx.textAlign='center';
+      ctx.textBaseline='middle';
+      ctx.fillStyle='#f1f6fb';
+      ctx.fillText(icon,x+size/2,yy+size/2+1);
+      ctx.textAlign='left';
+      ctx.textBaseline='alphabetic';
+    }
+
+    // Header: NO large champion artwork.
+    const headerH=116;
+    roundRect(ctx,14,14,W-28,headerH,18,'rgba(5,19,32,.86)','#24516d');
+
+    ctx.font='800 13px Arial';
+    ctx.fillStyle='#f3c54e';
+    ctx.fillText('LEGENDS OF RUNETERRA',P+2,36);
+
+    ctx.fillStyle='#d9f7ff';
+    ctx.fillText('✦  PATH OF CHAMPIONS',P+215,36);
+
+    ctx.font='800 40px Arial';
+    ctx.fillStyle='#f3f7fb';
+    ctx.fillText('LoR PoC Build',P,70);
+
+    ctx.font='800 30px Arial';
+    ctx.fillStyle='#f3c54e';
+    ctx.fillText(state.champion||'Unknown Champion',P,100);
+
+    const generated=new Intl.DateTimeFormat('en-US',{
+      year:'numeric',
+      month:'long',
+      day:'numeric',
+      hour:'2-digit',
+      minute:'2-digit',
+      second:'2-digit',
+      hour12:false
+    }).format(new Date());
+
+    ctx.font='13px Arial';
+    ctx.fillStyle='#9eb4c8';
+    ctx.fillText('Generated '+generated,P,124);
+
+    ctx.font='italic 13px Arial';
+    ctx.fillStyle='#d5dee7';
+    ctx.textAlign='right';
+    ctx.fillText('Made by penguinsgor',W-P-4,124);
+    ctx.textAlign='left';
+
+    y=140;
+
+    // Identity row: 3 columns on the same line.
+    const identityH=78;
+    roundRect(ctx,P,y,innerW,identityH,14,'rgba(7,20,33,.94)','#2c6b91');
+
+    const colW=innerW/3;
+    const centerY=y+identityH/2;
+    const div1=P+colW;
+    const div2=P+colW*2;
+    line(div1,y+15,div1,y+63,'#214966',1);
+    line(div2,y+15,div2,y+63,'#214966',1);
+
+    // Column 1 — Region
+    const rImg=await safeImage(region?.img);
+    const regionIconSize=46;
+    const regionIconX=P+20;
+    const regionIconY=Math.round(centerY-regionIconSize/2);
+    if(rImg){
+      ctx.drawImage(rImg,regionIconX,regionIconY,regionIconSize,regionIconSize);
+    }else{
+      drawPosterIcon('✦',regionIconX+2,regionIconY+2,42);
+    }
+    ctx.font='800 20px Arial';
+    ctx.fillStyle='#eef5ff';
+    ctx.fillText(region?.name||state.region,P+78,centerY+7);
+
+    // Column 2 — Champion
+    const cImg=await safeImage(champ?.img);
+    const portraitSize=50;
+    const portraitX=Math.round(div1+22);
+    const portraitY=Math.round(centerY-portraitSize/2);
+    if(cImg){
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(portraitX+portraitSize/2,portraitY+portraitSize/2,portraitSize/2-1,0,Math.PI*2);
+      ctx.clip();
+      ctx.drawImage(cImg,portraitX,portraitY,portraitSize,portraitSize);
+      ctx.restore();
+      ctx.strokeStyle='#f3c54e';
+      ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.arc(portraitX+portraitSize/2,portraitY+portraitSize/2,portraitSize/2,0,Math.PI*2);
+      ctx.stroke();
+    }else{
+      drawPosterIcon((state.champion||'?').slice(0,1),portraitX+3,portraitY+3,44);
+    }
+    const champTextX=portraitX+64;
+    ctx.font='800 20px Arial';
+    ctx.fillStyle='#eef5ff';
+    ctx.fillText(state.champion||'Unknown Champion',champTextX,centerY+7);
+
+    // Column 3 — Current loadout counts
+    const loadoutX=div2+22;
+    ctx.font='800 11px Arial';
+    ctx.fillStyle='#f3c54e';
+    ctx.fillText('CURRENT LOADOUT',loadoutX,centerY-8);
+    ctx.font='700 17px Arial';
+    ctx.fillStyle='#eef5ff';
+    ctx.fillText(`Relics ${state.relics.length}/3`,loadoutX,centerY+16);
+    ctx.fillStyle='#9eb4c8';
+    ctx.font='700 15px Arial';
+    ctx.fillText(`Powers ${state.powers.length}`,loadoutX+118,centerY+16);
+
+    y+=identityH+8;
+
+    if(state.adventure){
+      posterSection('Adventure',state.adventureDifficulty||'');
+      posterRow(P,y,innerW,54);
+      ctx.font='800 18px Arial';ctx.fillStyle='#eef5ff';ctx.fillText(state.adventure,P+18,y+24);
+      ctx.font='700 13px Arial';ctx.fillStyle='#f3c54e';ctx.fillText(state.adventureDifficulty||'—',P+18,y+44);
+      y+=54;
+    }
+
+    async function drawItems(title,items){
+      if(!items.length)return;
+
+      posterSection(title,`${items.length} selected`);
+
+      for(const item of items){
+        const rowH=54;
+        posterRow(P,y,innerW,rowH);
+
+        const pImg=await safeImage(item.icon);
+        if(pImg){
+          ctx.drawImage(pImg,P+10,y+4,46,46);
+        }else{
+          drawPosterIcon('⭐',P+10,y+4,46);
+        }
+
+        ctx.font='800 15px Arial';
+        ctx.fillStyle='#eef5ff';
+        ctx.fillText(item.name,P+70,y+22);
+
+        ctx.font='12px Arial';
+        ctx.fillStyle='#8fb0c9';
+        wrapText(
+          ctx,
+          `${item.rarity?item.rarity+'  ·  ':''}${item.desc}`,
+          P+70,
+          y+42,
+          innerW-92,
+          14,
+          2
+        );
+
+        y+=64;
+      }
+    }
+
+    if(selectedStars.length){
+      posterSection('Star Powers',`${selectedStars.length} selected`);
+
+      for(const item of selectedStars){
+        posterRow(P,y,innerW,60);
+
+        if(item.kind==='rune'){
+          ctx.strokeStyle='#f3c54e';
+          ctx.lineWidth=2;
+          ctx.beginPath();
+          ctx.arc(P+34,y+30,18,0,Math.PI*2);
+          ctx.stroke();
+          ctx.font='800 18px Arial';
+          ctx.fillStyle='#f3c54e';
+          ctx.textAlign='center';
+          ctx.fillText('◉',P+34,y+36);
+          ctx.textAlign='left';
+        }else{
+          ctx.font='800 18px Arial';
+          ctx.fillStyle='#f3c54e';
+          ctx.fillText(item.star,P+16,y+35);
+        }
+
+        y+=68;
+      }
+    }
+
+    if(selectedBonus.length){
+      posterSection('Bonus Stars',`${selectedBonus.length} selected`);
+
+      for(const item of selectedBonus){
+        posterRow(P,y,innerW,56);
+        drawPosterIcon('⭐',P+10,y+5,46);
+
+        ctx.font='800 15px Arial';
+        ctx.fillStyle='#eef5ff';
+        ctx.fillText(item.name,P+70,y+23);
+
+        ctx.font='12px Arial';
+        ctx.fillStyle='#8fb0c9';
+        wrapText(ctx,item.desc,P+70,y+43,innerW-92,14,2);
+
+        y+=64;
+      }
+    }
+
+    async function drawRelicTable(items){
+      if(!items.length)return;
+      posterSection('Relics',`${items.length} selected`);
+      const cols=[54,82,220,140];
+      const descX=P+cols[0]+cols[1]+cols[2]+12;
+      const tableW=innerW;
+      for(let ri=0;ri<items.length;ri++){
+        const item=items[ri];
+        const descLines=Math.max(1,Math.min(4,Math.ceil(String(item.desc||'').length/58)));
+        const rowH=Math.max(72,descLines*20+24);
+        posterRow(P,y,tableW,rowH);
+        let x=P;
+        line(x+cols[0],y+8,x+cols[0],y+rowH-8,'#214966',1);
+        line(x+cols[0]+cols[1],y+8,x+cols[0]+cols[1],y+rowH-8,'#214966',1);
+        line(x+cols[0]+cols[1]+cols[2],y+8,x+cols[0]+cols[1]+cols[2],y+rowH-8,'#214966',1);
+        ctx.font='800 18px Arial';ctx.fillStyle='#9eb4c8';ctx.textAlign='center';ctx.fillText(String(ri+1),P+cols[0]/2,y+rowH/2+6);ctx.textAlign='left';
+        const img=await safeImage(item.icon);
+        const is=54, ix=P+cols[0]+(cols[1]-is)/2, iy=y+(rowH-is)/2;
+        if(img)ctx.drawImage(img,ix,iy,is,is); else drawPosterIcon('✦',ix+5,iy+5,44);
+        ctx.font='800 16px Arial';ctx.fillStyle='#eef5ff';wrapText(ctx,item.name,P+cols[0]+cols[1]+12,y+25,cols[2]-24,20,3);
+        const cat=relicCategory(item);
+        const catColor=cat==='Commons'?'#8ed36f':cat==='Rares'?'#8fb6ff':'#c084fc';
+        ctx.font='800 11px Arial';ctx.fillStyle=catColor;ctx.fillText(String(cat||'').toUpperCase(),P+cols[0]+cols[1]+12,y+rowH-12);
+        ctx.font='12px Arial';ctx.fillStyle='#eef5ff';wrapText(ctx,item.desc||'',descX,y+25,innerW-(cols[0]+cols[1]+cols[2])-24,18,descLines);
+        y+=rowH+10;
+      }
+    }
+
+    await drawRelicTable(selectedRelics);
+    await drawItems('Powers',selectedPowers);
+
+    if(noteText){
+      posterSection('Player Notes','');
+
+      posterRow(P,y,innerW,noteH);
+
+      ctx.font='14px Arial';
+      ctx.fillStyle='#eef5ff';
+      wrapText(
+        ctx,
+        noteText,
+        P+16,
+        y+29,
+        innerW-32,
+        21,
+        Math.max(1,Math.floor((noteH-22)/21))
+      );
+
+      y+=noteH+10;
+    }
+
+    // Footer.
+    y+=20;
+    line(P+245,y,P+385,y,'#9b7a25',1);
+    ctx.font='800 13px Arial';
+    ctx.fillStyle='#f3c54e';
+    ctx.textAlign='center';
+    ctx.fillText('Made by penguinsgor',W/2,y+5);
+    line(P+695,y,P+835,y,'#9b7a25',1);
+    ctx.textAlign='left';
+
+    // Crop exactly to the content that was actually drawn.
+    const finalH=Math.max(1,Math.ceil(y+28)*scale);
+    const out=document.createElement('canvas');
+    out.width=W*scale;
+    out.height=finalH;
+
+    out.getContext('2d').drawImage(
+      canvas,
+      0,0,out.width,out.height,
+      0,0,out.width,out.height
+    );
+
+    // Prefer the native mobile share sheet. On iPhone/iPad this exposes "Save Image"
+    // when the browser supports sharing image files; otherwise fall back to opening the PNG.
+    const filename=`LoR_PoC_${(state.champion||'Build').replace(/[^a-z0-9_-]+/gi,'_')}_Build.png`;
+    let blob=null;
+    if(typeof out.toBlob==='function'){
+      blob=await new Promise(resolve=>{
+        try{out.toBlob(b=>resolve(b||null),'image/png')}catch(e){resolve(null)}
+      });
+    }
+    if(!blob || !blob.size){
+      let dataUrl='';
+      try{dataUrl=out.toDataURL('image/png')}catch(e){throw new Error(`Canvas PNG encoding failed: ${e?.message||e}`)}
+      if(!dataUrl || dataUrl==='data:,')throw new Error('Browser could not encode the canvas as PNG.');
+      blob=await (async()=>{
+        try{
+          const res=await fetch(dataUrl);
+          return await res.blob();
+        }catch(e){return null}
+      })();
+      if(!blob || !blob.size){
+        const a=document.createElement('a');
+        a.href=dataUrl;a.download=filename;a.rel='noopener';
+        a.style.position='fixed';a.style.left='-9999px';a.style.width='1px';a.style.height='1px';
+        document.body.appendChild(a);
+        try{a.click()}finally{setTimeout(()=>a.remove(),2000)}
+        showExportStatus('success',`PNG download requested: ${filename}`);
+      }
+    }
+
+    if(blob && blob.size){
+      // Direct download. This works when the HTML is opened/hosted as a normal page.
+      // Wix embeds run inside a sandboxed iframe; browsers can block downloads there.
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url;
+      a.download=filename;
+      a.rel='noopener';
+      a.setAttribute('download',filename);
+      a.style.position='fixed';a.style.left='-9999px';a.style.width='1px';a.style.height='1px';
+      document.body.appendChild(a);
+      try{a.click();}
+      finally{setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},3000)}
+      if(window.top!==window.self){
+        showExportStatus('success','PNG generated. If Wix blocks the browser download, open this HTML as a standalone page to download directly.');
+      }else{
+        showExportStatus('success',`PNG downloaded: ${filename}`);
+      }
+    }
+  }catch(err){
+    console.error('PNG export failed:',err);
+    const msg=err&&err.message?err.message:String(err);
+    showExportStatus(
+      'error',
+      `PNG export failed: ${msg} If this keeps happening, open F12 → Console and send me the red error shown there.`
+    );
+  }finally{
+    btn.disabled=false;
+    btn.textContent=old;
+  }
+}
+
+
+function buildSelectedExportClone(){
+  const app=document.querySelector('.app');
+  if(!app)throw new Error('Build page was not found.');
+  const clone=app.cloneNode(true);
+  clone.id='exportCapture';
+  clone.querySelectorAll('.export-bar,#exportStatus,.footer-note,.modal').forEach(n=>n.remove());
+
+  // Keep only the current Adventure selection and remove its editing controls.
+  const adv=clone.querySelector('#adventureSection');
+  if(adv){
+    if(state.adventure){
+      const tools=adv.querySelector('.adventure-tools');
+      if(tools){
+        tools.innerHTML=`<div class="export-selected-value">${esc(state.adventure)}</div><div class="export-selected-value export-difficulty">${esc(state.adventureDifficulty||'—')}</div>`;
+        tools.classList.add('export-adventure-tools');
+      }
+      const status=adv.querySelector('#adventureStatus');
+      if(status)status.textContent='Selected adventure';
+    }else adv.remove();
+  }
+
+  // Region: show only the selected region icon.
+  const regionGrid=clone.querySelector('#regions');
+  if(regionGrid){
+    [...regionGrid.querySelectorAll('.region-card')].forEach(card=>{
+      const title=card.getAttribute('title')||'';
+      if(title!==String(state.region||''))card.remove();
+    });
+    const label=clone.querySelector('#regionLabel');
+    if(label)label.textContent=state.region||'';
+  }
+
+  // Champion: show only the selected champion and remove search controls.
+  const champGrid=clone.querySelector('#champions');
+  if(champGrid){
+    [...champGrid.querySelectorAll('.champ')].forEach(card=>{
+      const name=card.querySelector('.champ-name')?.textContent?.trim()||'';
+      if(name!==String(state.champion||''))card.remove();
+    });
+  }
+  clone.querySelectorAll('.champ-search-wrap,.champ-title-tools').forEach(n=>{
+    // Preserve the selected champion label, but remove the search UI.
+    if(n.classList.contains('champ-title-tools')){
+      const label=n.querySelector('.champ-selected-label');
+      if(label){n.replaceChildren(label.cloneNode(true));}
+      else n.remove();
+    }else n.remove();
+  });
+
+  // Star Powers: only checked/selected nodes remain; remove the Select All control.
+  const starGrid=clone.querySelector('#stars');
+  if(starGrid){
+    [...starGrid.querySelectorAll('.star')].forEach((node,i)=>{
+      if(!state.stars.has(i))node.remove();
+      else{
+        const cb=node.querySelector('input');
+        if(cb)cb.remove();
+      }
+    });
+    if(!starGrid.querySelector('.star'))starGrid.closest('section')?.remove();
+  }
+  const starTitle=clone.querySelector('#stars')?.closest('section')?.querySelector('.title');
+  if(starTitle)starTitle.querySelector('.select-all-btn')?.remove();
+
+  // Bonus Stars: only checked/selected nodes remain; remove the Select All control.
+  const bonusGrid=clone.querySelector('#bonus');
+  if(bonusGrid){
+    [...bonusGrid.querySelectorAll('.bonus-item')].forEach((node,i)=>{
+      if(!state.bonus.has(i))node.remove();
+      else node.querySelector('input')?.remove();
+    });
+    if(!bonusGrid.querySelector('.bonus-item'))bonusGrid.closest('section')?.remove();
+  }
+  const bonusTitle=clone.querySelector('#bonus')?.closest('section')?.querySelector('.title');
+  if(bonusTitle)bonusTitle.querySelector('.select-all-btn')?.remove();
+
+  // Relics and Powers are already rendered as selected items only. Remove controls.
+  const relicSection=clone.querySelector('#relicSlots')?.closest('section');
+  if(relicSection && !relicSection.querySelector('.slot'))relicSection.remove();
+  const powerSection=clone.querySelector('#powerList')?.closest('section');
+  if(powerSection){
+    powerSection.querySelector('.add')?.remove();
+    if(!powerSection.querySelector('.power-row'))powerSection.remove();
+  }
+
+  // Notes: turn the live textarea into static text so it renders exactly as content.
+  const notes=clone.querySelector('#notesSection');
+  if(notes){
+    const ta=notes.querySelector('textarea');
+    const value=String(state.notes||el('playerNotes')?.value||'').trim();
+    if(!value){notes.remove();}
+    else if(ta){
+      const div=document.createElement('div');
+      div.className='export-notes-content';
+      div.textContent=value;
+      ta.replaceWith(div);
+      notes.querySelector('.notes-hint')?.remove();
+    }
+  }
+
+  // Remove IDs that could collide with the live page and disable all interactive remnants.
+  clone.querySelectorAll('[id]').forEach(n=>{if(n.id!=='exportCapture')n.removeAttribute('id')});
+  clone.querySelectorAll('button,input,select,textarea').forEach(n=>{
+    if(n.tagName==='BUTTON')n.replaceWith(document.createTextNode(n.textContent||''));
+    else n.remove();
+  });
+  return clone;
+}
+
+async function exportPNG(){
+  // The Save Build Image button uses the established poster renderer directly.
+  // This preserves the researched LoR PoC export layout instead of screenshotting
+  // the live editor UI. Height remains dynamic and only selected content is drawn.
+  return exportPNGManualFallback();
+}
+
+
+initChampionSearch();
+initAdventureUI();
+renderAll();
+el('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+el('playerNotes').addEventListener('input',e=>{state.notes=e.target.value});
+document.addEventListener('DOMContentLoaded',async()=>{readSharedBuildFromHash();renderAll();try{await loadLiveData()}catch(e){setDataStatus('Live refresh failed · no live dataset loaded')}try{applySharedBuild();if(state.champion)await refreshSelectedChampionFromWiki()}catch(e){setDataStatus(`Shared build could not be applied · ${e?.message||e}`)}renderAll();});
+</script>
+</body></html>
