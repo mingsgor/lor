@@ -2092,7 +2092,7 @@ function renderModalOptions(){
   const q=el('modalSearch').value.trim().toLocaleLowerCase();
   const arr=modalType==='relic'?DATA.relics:DATA.powers;
   const filtered=arr.map((x,i)=>({x,i})).filter(o=>{
-    if(modalType==='relic' && relicFilter!=='ALL' && relicCategory(o.x)!==relicFilter)return false;
+    if(modalType==='relic' && relicFilter!=='ALL' && String(relicCategory(o.x)||'').trim().toLocaleUpperCase()!==String(relicFilter||'ALL').trim().toLocaleUpperCase())return false;
     if(!q)return true;
     const name=String(o.x.name||'').trim().toLocaleLowerCase();
     if(modalType==='relic'){
@@ -2497,23 +2497,24 @@ async function exportPNGManualFallback(){
       posterSection('Powers','');
       // Export table: Order / Icon / Name / Rarity / Description.
       const displayItems=[...items].reverse();
-      const cols=[54,82,220,125];
+      const cols=[126,82,220,125];
       const descX=P+cols[0]+cols[1]+cols[2]+cols[3]+12;
       const descW=innerW-(cols[0]+cols[1]+cols[2]+cols[3])-24;
       for(let pi=0;pi<displayItems.length;pi++){
         const item=displayItems[pi]||{};
         const descLines=Math.max(1,Math.min(5,Math.ceil(String(item.desc||'').length/52)));
-        const rowH=Math.max(78,descLines*21+24);
+        const rowH=Math.max(82,descLines*21+24);
         posterRow(P,y,innerW,rowH);
         line(P+cols[0],y+8,P+cols[0],y+rowH-8,'#214966',1);
         line(P+cols[0]+cols[1],y+8,P+cols[0]+cols[1],y+rowH-8,'#214966',1);
         line(P+cols[0]+cols[1]+cols[2],y+8,P+cols[0]+cols[1]+cols[2],y+rowH-8,'#214966',1);
         line(P+cols[0]+cols[1]+cols[2]+cols[3],y+8,P+cols[0]+cols[1]+cols[2]+cols[3],y+rowH-8,'#214966',1);
 
-        ctx.font='800 16px Arial';
+        const orderLabel=powerOrderLabel(pi,displayItems.length);
+        ctx.font=orderLabel==='First Power'?'800 15px Arial':'800 16px Arial';
         ctx.fillStyle='#9eb4c8';
         ctx.textAlign='center';
-        ctx.fillText(powerOrderLabel(pi,displayItems.length),P+cols[0]/2,y+rowH/2+6);
+        ctx.fillText(orderLabel,P+cols[0]/2,y+rowH/2+6);
         ctx.textAlign='left';
 
         const img=await safeImage(item.icon);
