@@ -2356,7 +2356,10 @@ async function exportPNGManualFallback(){
     const innerW=W-P*2;
     let y=30;
 
-    const selectedStars=[...state.stars].map(i=>DATA.stars[i]).filter(Boolean);
+    const selectedStars=[...state.stars]
+      .map(i=>DATA.stars[i])
+      .filter(Boolean)
+      .sort((a,b)=>Number(a?.starLevel||0)-Number(b?.starLevel||0));
 
     // IMPORTANT: Export the values currently shown/checked in the editor UI.
     // Live Wiki refreshes can reorder DATA arrays after the user has made a
@@ -2393,13 +2396,20 @@ async function exportPNGManualFallback(){
     const noteH=noteText ? Math.max(92,Math.min(420,54+noteLines*23)) : 0;
 
     // Dynamic height. There is deliberately NO social-media height cap.
+    // Relic/Power descriptions are exported at 16px, so reserve height from
+    // their wrapped text instead of assuming a fixed row height.
+    const exportTableRowsH=(items,charsPerLine=44,lineH=23,minH=82,maxLines=5)=>items.reduce((sum,item)=>{
+      const desc=String(item?.desc||'');
+      const lines=Math.max(1,Math.min(maxLines,Math.ceil(desc.length/charsPerLine)));
+      return sum+Math.max(minH,lines*lineH+24)+10;
+    },0);
     let H=0;
     H += 178;                 // header
     if(adventureName)         H += 64 + 12;
     if(selectedStars.length)  H += 18 + 52 + Math.ceil(selectedStars.length/3)*68;
     if(selectedBonus.length)  H += 18 + 52 + Math.ceil(selectedBonus.length/5)*58;
-    if(selectedRelics.length) H += 18 + 52 + selectedRelics.length*112;
-    if(selectedPowers.length) H += 18 + 52 + selectedPowers.length*112;
+    if(selectedRelics.length) H += 18 + 52 + exportTableRowsH(selectedRelics);
+    if(selectedPowers.length) H += 18 + 52 + exportTableRowsH(selectedPowers);
     if(noteText)              H += 18 + 52 + noteH;
     H += 42;                  // footer
     H=Math.ceil(H);
@@ -2496,7 +2506,7 @@ async function exportPNGManualFallback(){
 
     ctx.font='800 40px Arial';
     ctx.fillStyle='#f3f7fb';
-    ctx.fillText('LoR PoC Build',P,70);
+    ctx.fillText('LoR PoC Build',P,82);
 
     // Selected champion: move name + circular icon to the right side of the header.
     const cImg=await safeImage(champ?.img);
@@ -2573,8 +2583,8 @@ async function exportPNGManualFallback(){
       const descW=innerW-(cols[0]+cols[1]+cols[2]+cols[3])-24;
       for(let pi=0;pi<displayItems.length;pi++){
         const item=displayItems[pi]||{};
-        const descLines=Math.max(1,Math.min(5,Math.ceil(String(item.desc||'').length/52)));
-        const rowH=Math.max(82,descLines*21+24);
+        const descLines=Math.max(1,Math.min(5,Math.ceil(String(item.desc||'').length/44)));
+        const rowH=Math.max(82,descLines*23+24);
         posterRow(P,y,innerW,rowH);
         line(P+cols[0],y+8,P+cols[0],y+rowH-8,'#214966',1);
         line(P+cols[0]+cols[1],y+8,P+cols[0]+cols[1],y+rowH-8,'#214966',1);
@@ -2606,9 +2616,9 @@ async function exportPNGManualFallback(){
         wrapText(ctx,rarity.toUpperCase(),P+cols[0]+cols[1]+cols[2]+12,y+27,cols[3]-24,16,2);
 
         // Larger, more readable description in the 5th column.
-        ctx.font='14px Arial';
+        ctx.font='16px Arial';
         ctx.fillStyle='#eef5ff';
-        wrapText(ctx,item.desc||'',descX,y+27,descW,20,descLines);
+        wrapText(ctx,item.desc||'',descX,y+29,descW,23,descLines);
         y+=rowH+10;
       }
     }
@@ -2664,8 +2674,8 @@ async function exportPNGManualFallback(){
       const descW=innerW-(cols[0]+cols[1]+cols[2]+cols[3])-24;
       for(let ri=0;ri<items.length;ri++){
         const item=items[ri];
-        const descLines=Math.max(1,Math.min(5,Math.ceil(String(item.desc||'').length/52)));
-        const rowH=Math.max(78,descLines*21+24);
+        const descLines=Math.max(1,Math.min(5,Math.ceil(String(item.desc||'').length/44)));
+        const rowH=Math.max(78,descLines*23+24);
         posterRow(P,y,tableW,rowH);
         let x=P;
         line(x+cols[0],y+8,x+cols[0],y+rowH-8,'#214966',1);
@@ -2689,8 +2699,8 @@ async function exportPNGManualFallback(){
         wrapText(ctx,String(cat||'').toUpperCase(),P+cols[0]+cols[1]+cols[2]+12,y+27,cols[3]-24,16,2);
 
         // Larger, more readable description in the 5th column.
-        ctx.font='14px Arial';ctx.fillStyle='#eef5ff';
-        wrapText(ctx,item.desc||'',descX,y+27,descW,20,descLines);
+        ctx.font='16px Arial';ctx.fillStyle='#eef5ff';
+        wrapText(ctx,item.desc||'',descX,y+29,descW,23,descLines);
         y+=rowH+10;
       }
     }
