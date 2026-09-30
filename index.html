@@ -140,9 +140,13 @@ const SOURCES={
   wikiPowerCategory:'Category:PoC_Power',
   wikiPowerLetterBase:'https://wiki.leagueoflegends.com/en-us/LoR:'
 };
-const DATA_CACHE_KEY='lor-poc-live-data-v110';
-const LEGACY_CACHE_KEYS=['lor-poc-live-data-v95','lor-poc-live-data-v94','lor-poc-live-data-v86','lor-poc-live-data-v81','lor-poc-live-data-v66','lor-poc-live-data-v80'];
-const DATA_CACHE_TS='lor-poc-live-data-ts-v110';
+// v113: relic data is treated as a protected dataset. Older builds could cache an
+// empty DATA.relics array and then overwrite a good cache during the async roster load.
+// That made the Relic selector permanently show "No results" even when the source was fine.
+const DATA_CACHE_KEY='lor-poc-live-data-v113';
+const LEGACY_CACHE_KEYS=['lor-poc-live-data-v110','lor-poc-live-data-v95','lor-poc-live-data-v94','lor-poc-live-data-v86','lor-poc-live-data-v81','lor-poc-live-data-v66','lor-poc-live-data-v80'];
+const DATA_CACHE_TS='lor-poc-live-data-ts-v113';
+const MIN_RELIC_DATA=10;
 
 function setDataStatus(msg){
   const n=el('dataStatus');
@@ -1789,22 +1793,56 @@ function ensurePowerTestData(){
 }
 function restoreCachedData(){
   try{
-    let raw=localStorage.getItem(DATA_CACHE_KEY);
-    if(!raw){
-      for(const key of LEGACY_CACHE_KEYS){
-        raw=localStorage.getItem(key);
-        if(raw)break;
-      }
+    // Check every known cache instead of trusting the first one. Pick the cache
+    // containing the largest valid relic dataset, because old versions may have
+    // saved relics:[] during a source failure.
+    const keys=[DATA_CACHE_KEY,...LEGACY_CACHE_KEYS];
+    let best=null;
+    let bestRelicCount=-1;
+    for(const key of keys){
+      try{
+        const raw=localStorage.getItem(key);
+        if(!raw)continue;
+        const cached=JSON.parse(raw);
+        if(!cached||typeof cached!=='object')continue;
+        const relicCount=Array.isArray(cached.relics)?cached.relics.length:0;
+        if(relicCount>bestRelicCount){best=cached;bestRelicCount=relicCount}
+      }catch(e){}
     }
-    if(!raw)return false;
-    const cached=JSON.parse(raw); if(!cached)return false;
-    DATA={...DATA,...cached};
+    if(!best)return false;
+
+    // Never let an empty/invalid cached relic array erase a working in-memory one.
+    const currentRelics=Array.isArray(DATA.relics)&&DATA.relics.length>=MIN_RELIC_DATA
+      ? DATA.relics : null;
+    DATA={...DATA,...best};
+    if(currentRelics && (!Array.isArray(DATA.relics)||DATA.relics.length<MIN_RELIC_DATA)){
+      DATA.relics=currentRelics;
+    }
     ensurePowerTestData();
     return true;
   }catch(e){return false}
 }
 function saveCachedData(){
-  try{localStorage.setItem(DATA_CACHE_KEY,JSON.stringify(DATA));localStorage.setItem(DATA_CACHE_TS,new Date().toISOString())}catch(e){}
+  try{
+    // IMPORTANT: never persist an empty relic dataset over a previously working
+    // cache. This is the main guard against async source failures poisoning the cache.
+    const snapshot={...DATA};
+    if(!Array.isArray(snapshot.relics)||snapshot.relics.length<MIN_RELIC_DATA){
+      for(const key of [DATA_CACHE_KEY,...LEGACY_CACHE_KEYS]){
+        try{
+          const raw=localStorage.getItem(key);
+          if(!raw)continue;
+          const old=JSON.parse(raw);
+          if(Array.isArray(old?.relics)&&old.relics.length>=MIN_RELIC_DATA){
+            snapshot.relics=old.relics;
+            break;
+          }
+        }catch(e){}
+      }
+    }
+    localStorage.setItem(DATA_CACHE_KEY,JSON.stringify(snapshot));
+    localStorage.setItem(DATA_CACHE_TS,new Date().toISOString());
+  }catch(e){}
 }
 async function loadLiveData(){
   const cached=restoreCachedData();
@@ -1840,7 +1878,7 @@ async function loadLiveData(){
   let changed=false;
   // Never replace a working relic dataset with an empty result from a failed
   // live source. This was causing the selector to become completely blank.
-  if(results[0].status==='fulfilled' && Array.isArray(results[0].value) && results[0].value.length){
+  if(results[0].status==='fulfilled' && Array.isArray(results[0].value) && results[0].value.length>=MIN_RELIC_DATA){
     DATA.relics=results[0].value;changed=true;
   }
   if(results[1].status==='fulfilled' && Array.isArray(results[1].value) && results[1].value.length){
@@ -1852,7 +1890,23 @@ async function loadLiveData(){
   const powerCountBefore=Array.isArray(DATA.powers)?DATA.powers.length:0;
   ensurePowerTestData();
   if((Array.isArray(DATA.powers)?DATA.powers.length:0)!==powerCountBefore)changed=true;
-  if(results[2].status==='fulfilled' && results[2].value?.length){DATA.relics=results[2].value;changed=true}
+  if(results[2].status==='fulfilled' && Array.isArray(results[2].value) && results[2].value.length>=MIN_RELIC_DATA){DATA.relics=results[2].value;changed=true}
+
+  // If both live relic sources failed, retry them once after the other live data
+  // finishes. This specifically recovers from transient CORS/proxy failures.
+  if(!Array.isArray(DATA.relics)||DATA.relics.length<MIN_RELIC_DATA){
+    const retryResults=await Promise.allSettled([
+      loadWikiRelicData(),
+      loadRuneterraSource(SOURCES.relics,'relic')
+    ]);
+    for(const rr of retryResults){
+      if(rr.status==='fulfilled' && Array.isArray(rr.value) && rr.value.length>=MIN_RELIC_DATA){
+        DATA.relics=rr.value;
+        changed=true;
+        break;
+      }
+    }
+  }
   if(results[3].status==='fulfilled'){
     const adv=results[3].value||{};
     DATA.adventures=adv.adventures||adv;
@@ -1862,9 +1916,14 @@ async function loadLiveData(){
   if(changed){
     saveCachedData();
     renderAll();
-    setDataStatus(`Live data loaded · ${new Date().toLocaleString('en-US')}`);
+    setDataStatus(`Live data loaded · Relics ${Array.isArray(DATA.relics)?DATA.relics.length:0} · ${new Date().toLocaleString('en-US')}`);
+  }else if(Array.isArray(DATA.relics)&&DATA.relics.length>=MIN_RELIC_DATA){
+    // Keep a visible diagnostic: the selector has real relic data even if other
+    // live sources failed.
+    renderAll();
+    setDataStatus(`Relic data ready · ${DATA.relics.length} relics`);
   }else if(!cached){
-    setDataStatus('Live sources unavailable · using built-in fallback data');
+    setDataStatus('Live sources unavailable · retrying relic data');
   }
 
   // Do not block the initial Champion list on the selected Champion's full page.
@@ -2077,22 +2136,34 @@ function renderPowers(){
   el('powerList').innerHTML=(rows?`<div class="power-table">${rows}</div>`:'')+`<button class="add" onclick="openModal('power')">＋ Add Power</button>`;
 }
 function removePower(n){state.powers.splice(n,1);renderPowers()}
+function normalizeRelicFilter(v){
+  const raw=String(v||'').trim().toLocaleLowerCase();
+  if(!raw||raw==='all')return 'ALL';
+  if(raw.includes('signature')&&raw.includes('epic'))return 'SIGNATURE EPICS';
+  if(raw.includes('common'))return 'COMMONS';
+  if(raw.includes('rare'))return 'RARES';
+  if(raw.includes('epic'))return 'EPICS';
+  return '';
+}
 function renderRelicFilters(){
   const box=el('modalFilters');
   if(!box)return;
   if(modalType!=='relic'){box.innerHTML='';box.style.display='none';return;}
   box.style.display='flex';
-  const filters=['COMMONS','RARES','EPICS','SIGNATURE EPICS'];
-  box.innerHTML=filters.map(f=>{const cls=f==='COMMONS'?'relic-filter-common':f==='RARES'?'relic-filter-rare':f==='EPICS'?'relic-filter-epic':'relic-filter-signature';return `<button type="button" class="relic-filter ${cls} ${relicFilter===f?'active':''}" onclick="setRelicFilter('${f}')">${f}</button>`}).join('');
+  const filters=['ALL','COMMONS','RARES','EPICS','SIGNATURE EPICS'];
+  box.innerHTML=filters.map(f=>{
+    const cls=f==='COMMONS'?'relic-filter-common':f==='RARES'?'relic-filter-rare':f==='EPICS'?'relic-filter-epic':f==='SIGNATURE EPICS'?'relic-filter-signature':'';
+    return `<button type="button" class="relic-filter ${cls} ${relicFilter===f?'active':''}" onclick="setRelicFilter('${f}')">${f}</button>`;
+  }).join('');
 }
-function setRelicFilter(filter){relicFilter=filter||'ALL';renderRelicFilters();renderModalOptions()}
-function openModal(type){modalType=type;el('modalTitle').textContent=type==='relic'?'Select Relic':'Select Power';if(type==='relic')relicFilter='COMMONS';else relicFilter='ALL';el('modalSearch').value='';renderRelicFilters();el('modal').classList.add('open');document.body.classList.add('modal-open');renderModalOptions();setTimeout(()=>el('modalSearch').focus(),30)}
+function setRelicFilter(filter){relicFilter=normalizeRelicFilter(filter)||'ALL';renderRelicFilters();renderModalOptions()}
+function openModal(type){modalType=type;el('modalTitle').textContent=type==='relic'?'Select Relic':'Select Power';relicFilter='ALL';el('modalSearch').value='';renderRelicFilters();el('modal').classList.add('open');document.body.classList.add('modal-open');renderModalOptions();setTimeout(()=>el('modalSearch').focus(),30)}
 function closeModal(){el('modal').classList.remove('open');modalType=null;renderRelicFilters();document.body.classList.remove('modal-open')}
 function renderModalOptions(){
   const q=el('modalSearch').value.trim().toLocaleLowerCase();
-  const arr=modalType==='relic'?DATA.relics:DATA.powers;
+  const arr=modalType==='relic'?(Array.isArray(DATA.relics)?DATA.relics:[]):(Array.isArray(DATA.powers)?DATA.powers:[]);
   const filtered=arr.map((x,i)=>({x,i})).filter(o=>{
-    if(modalType==='relic' && relicFilter!=='ALL' && String(relicCategory(o.x)||'').trim().toLocaleUpperCase()!==String(relicFilter||'ALL').trim().toLocaleUpperCase())return false;
+    if(modalType==='relic' && relicFilter!=='ALL' && normalizeRelicFilter(relicCategory(o.x))!==normalizeRelicFilter(relicFilter))return false;
     if(!q)return true;
     const name=String(o.x.name||'').trim().toLocaleLowerCase();
     if(modalType==='relic'){
@@ -2118,7 +2189,7 @@ function renderModalOptions(){
 function addSelected(i){if(modalType==='relic'){if(state.relics.length<3)state.relics.push(i);renderRelics()}else{state.powers.push(i);renderPowers()}renderSummary();closeModal()}
 function renderSummary(){}
 function renderAll(){renderAdventureOptions();renderRegions();renderChampions();renderStars();renderBonus();renderRelics();renderPowers();el('champLabel').textContent=state.champion;}
-async function resetBuild(){state={region:'Bandle City',champion:'',champSearch:'',adventureCategory:'World Adventures',adventure:'',adventureDifficulty:'',stars:new Set(),bonus:new Set(),relics:[],powers:[],notes:''};relicFilter='COMMONS';el('playerNotes').value='';renderAll();try{await refreshSelectedChampionFromWiki()}catch(e){};window.scrollTo({top:0,left:0,behavior:'smooth'});setTimeout(()=>window.scrollTo(0,0),450)}
+async function resetBuild(){state={region:'Bandle City',champion:'',champSearch:'',adventureCategory:'World Adventures',adventure:'',adventureDifficulty:'',stars:new Set(),bonus:new Set(),relics:[],powers:[],notes:''};relicFilter='ALL';el('playerNotes').value='';renderAll();try{await refreshSelectedChampionFromWiki()}catch(e){};window.scrollTo({top:0,left:0,behavior:'smooth'});setTimeout(()=>window.scrollTo(0,0),450)}
 
 let imagePreviewUrl='';
 let imagePreviewFilename='LoR_PoC_Build.png';
