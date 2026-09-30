@@ -47,6 +47,14 @@
   #exportCapture .star .check,#exportCapture .bonus-item .check{display:none}
   #exportCapture .notes-box{min-height:170px;white-space:pre-wrap}
   #exportCapture .export-notes-content{min-height:120px;padding:12px;border-radius:9px;border:1px solid var(--line);background:#08121d;color:#fff;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+
+.relic-filter.relic-filter-common{color:#8ed36f;border-color:rgba(126,190,105,.55)}
+.relic-filter.relic-filter-rare{color:#8fb6ff;border-color:rgba(91,139,218,.55)}
+.relic-filter.relic-filter-epic,.relic-filter.relic-filter-signature{color:#c084fc;border-color:rgba(192,132,252,.55)}
+.relic-filter.active.relic-filter-common{background:rgba(126,190,105,.12);border-color:#8ed36f;color:#8ed36f}
+.relic-filter.active.relic-filter-rare{background:rgba(91,139,218,.12);border-color:#8fb6ff;color:#8fb6ff}
+.relic-filter.active.relic-filter-epic,.relic-filter.active.relic-filter-signature{background:rgba(192,132,252,.12);border-color:#c084fc;color:#c084fc}
+.slot .danger{width:24px;height:24px;display:grid;place-items:center;background:rgba(120,30,30,.24);border:1px solid #7a3c3c;color:#ff9b9b;font-size:14px;font-weight:900}
 </style>
 </head>
 <body>
@@ -59,7 +67,7 @@
 
 <section id="adventureSection"><div class="title"><span>Adventure</span><div class="adventure-tools"><select id="adventureCategory" class="adventure-select" aria-label="Adventure category"><option value="World Adventures">World Adventures</option><option value="Nightmare Adventures">Nightmare Adventures</option><option value="Event Campaigns">Event Campaigns</option></select><div class="adventure-row"><input id="adventureInput" class="adventure-input" type="text" list="adventureList" autocomplete="off" spellcheck="false" placeholder="Type adventure name..." aria-label="Adventure name"><select id="adventureSelect" class="adventure-select" aria-label="Choose adventure"><option value="">Select adventure...</option></select></div></div></div><div class="body"><div class="adventure-row"><div class="adventure-empty" id="adventureStatus">Loading live adventures…</div><div class="adventure-difficulty" id="adventureDifficulty">—</div></div><datalist id="adventureList"></datalist></div></section>
 
-<section><div class="title">Region <small id="regionLabel">Bilgewater</small></div><div class="body"><div class="region-grid" id="regions"></div></div></section>
+<section><div class="title">Region <small id="regionLabel">Bandle City</small></div><div class="body"><div class="region-grid" id="regions"></div></div></section>
 
 <section><div class="title"><span>Champion</span><div class="champ-title-tools"><div class="champ-search-wrap"><input id="champSearch" class="champ-search" type="search" autocomplete="off" spellcheck="false" placeholder="Search champion..." aria-label="Search champion"><button id="champSearchClear" class="champ-search-clear" type="button" aria-label="Clear champion search">×</button></div><small id="champLabel" class="champ-selected-label">Illaoi</small></div></div><div class="body"><div class="champ-grid" id="champions"></div></div></section>
 
@@ -268,12 +276,6 @@ function adventureNameFromCell(cell){
   if(alt && !/^image$/i.test(alt))return alt;
   return normalizeName(cell.textContent).replace(/\[edit\]/ig,'').trim();
 }
-function cleanAdventureDisplayName(name){
-  return normalizeName(String(name||''))
-    .replace(/^(?:world|nightmare|event)\s+adventures?\s*[-:–—]?\s*/i,'')
-    .replace(/^(?:event\s+campaigns?)\s*[-:–—]?\s*/i,'')
-    .trim();
-}
 function adventureDifficultyFromCell(cell){
   if(!cell)return '';
   const txt=normalizeName(cell.textContent).replace(/\s+/g,' ').trim();
@@ -282,6 +284,36 @@ function adventureDifficultyFromCell(cell){
   if(title)return title;
   const attrs=[...cell.querySelectorAll('img[alt],img[title],a[title],a[aria-label]')].flatMap(x=>[x.getAttribute('alt'),x.getAttribute('title'),x.getAttribute('aria-label')]).map(normalizeName);
   return attrs.find(x=>/\b\d+(?:\.\d+)?\s*Stars?\b/i.test(x))||'';
+}
+function cleanAdventureName(name){
+  let n=normalizeName(name).replace(/\[edit\]/ig,'').trim();
+  if(/^(world adventures|nightmare adventures|event campaigns|champion campaigns)$/i.test(n))return '';
+  return n;
+}
+function parseAdventureTableFlexible(table){
+  const rows=[...table.querySelectorAll('tr')];
+  const out=[];const seen=new Set();
+  for(const row of rows){
+    const cells=[...row.querySelectorAll(':scope > th,:scope > td')];
+    if(cells.length<2)continue;
+    let difficulty=''; let difficultyIndex=-1;
+    for(let i=0;i<cells.length;i++){
+      const txt=normalizeName(cells[i].textContent||'').replace(/\s+/g,' ').trim();
+      if(/\b\d+(?:\.\d+)?\s*Stars?\b/i.test(txt)){difficulty=txt.match(/\b\d+(?:\.\d+)?\s*Stars?\b/i)?.[0]||txt;difficultyIndex=i;break;}
+    }
+    if(difficultyIndex<0)continue;
+    let name='';
+    for(let i=0;i<cells.length;i++){
+      if(i===difficultyIndex)continue;
+      const candidate=cleanAdventureName(adventureNameFromCell(cells[i]));
+      if(candidate && !/^(difficulty|stars?)$/i.test(candidate) && candidate.length<=140){name=candidate;break;}
+    }
+    if(!name||!difficulty)continue;
+    const key=adventureIdentityKey({name,difficulty});
+    if(!key||seen.has(key))continue;
+    seen.add(key);out.push({name,difficulty});
+  }
+  return out;
 }
 function parseAdventureTable(table){
   const rows=[...table.querySelectorAll('tr')];
@@ -294,30 +326,12 @@ function parseAdventureTable(table){
     const d=labels.findIndex(x=>x==='difficulty'||x.startsWith('difficulty '));
     if(a!==-1&&d!==-1){headerIndex=i;adventureCol=a;difficultyCol=d;break}
   }
-  if(headerIndex<0){
-    // Some Wiki table variants omit explicit Adventure/Difficulty headers.
-    // Recover rows by locating a cell containing an N-Star difficulty.
-    const out=[];const seen=new Set();
-    for(const row of rows){
-      const cells=[...row.querySelectorAll('th,td')];
-      if(cells.length<2)continue;
-      const diffIndex=cells.findIndex(c=>/\b\d+(?:\.\d+)?\s*Stars?\b/i.test(normalizeName(c.textContent||'')));
-      if(diffIndex<1)continue;
-      const nameCell=cells[0];
-      const name=cleanAdventureDisplayName(adventureNameFromCell(nameCell));
-      const difficulty=adventureDifficultyFromCell(cells[diffIndex]);
-      if(!name||!difficulty||name.length>120)continue;
-      const key=name.toLocaleLowerCase();
-      if(seen.has(key))continue;
-      seen.add(key);out.push({name,difficulty});
-    }
-    return out;
-  }
+  if(headerIndex<0)return parseAdventureTableFlexible(table);
   const out=[];const seen=new Set();
   for(let i=headerIndex+1;i<rows.length;i++){
     const cells=[...rows[i].querySelectorAll('th,td')];
     if(cells.length<=Math.max(adventureCol,difficultyCol))continue;
-    const name=cleanAdventureDisplayName(adventureNameFromCell(cells[adventureCol]));
+    const name=cleanAdventureName(adventureNameFromCell(cells[adventureCol]));
     const difficulty=adventureDifficultyFromCell(cells[difficultyCol]);
     if(!name||!difficulty||/^adventure$/i.test(name)||/^difficulty$/i.test(difficulty))continue;
     // Ignore non-adventure navigation links that happen to be in the same cell.
@@ -728,25 +742,78 @@ function wikiRelicDescriptionFromCell(cell){
 function parseWikiRelicData(html){
   const doc=new DOMParser().parseFromString(html||'','text/html');
   const out=[]; const seen=new Set();
+  const pushRelic=(name,desc,icon,category)=>{
+    name=normalizeName(name).replace(/^LoR\s*:\s*/i,'').replace(/https?:\/\/[^\s]+/gi,'').replace(/^R\d{3,6}\s*[-–—:]?\s*/i,'').trim();
+    if(!name||/^(relic|name|description)$/i.test(name)||name.length>100)return;
+    if(!desc && !icon)return;
+    const key=name.toLocaleLowerCase();
+    if(seen.has(key))return;
+    seen.add(key);
+    const cat=relicCategory({wikiCategory:category,rarity:category})||category||'';
+    out.push({name,rarity:cat,wikiCategory:cat,icon:icon||'',desc:normalizeName(desc||''),source:'wiki'});
+  };
+
+  // Primary parser: use the Wiki's explicit Commons / Rares / Epics /
+  // Signature Epics tab structure.
   for(const category of RELIC_WIKI_CATEGORIES){
     for(const table of relicWikiTablesForCategory(doc,category)){
       for(const tr of table.querySelectorAll('tr')){
         const cells=[...tr.querySelectorAll(':scope > th,:scope > td')];
-        // The Wiki relic tables are intentionally read as only the first two
-        // columns: Relic and Description. Any extra columns are ignored.
         if(cells.length<2)continue;
-        let name=relicNameFromCell(cells[0]);
-        name=name.replace(/^LoR\s*:\s*/i,'').trim();
-        name=name.replace(/https?:\/\/[^\s]+/gi,'').trim();
-        name=name.replace(/^R\d{3,6}\s*[-–—:]?\s*/i,'').trim();
-        if(!name||/^(relic|name)$/i.test(name)||name.length>100)continue;
-        const key=name.toLocaleLowerCase();
-        if(seen.has(key))continue;
+        const first=cellPlain(cells[0]);
+        if(/^(relic|name)$/i.test(first))continue;
+        pushRelic(relicNameFromCell(cells[0]),wikiRelicDescriptionFromCell(cells[1]),wikiRelicIconFromCell(cells[0]),category);
+      }
+    }
+  }
+
+  // Fallback parser: MediaWiki has changed its tab/heading markup more than
+  // once. If the tab-specific lookup misses tables, scan normal tables and
+  // infer the rarity from the nearest heading or a rarity cell.
+  if(out.length<10){
+    const normalizeCat=v=>{
+      const t=normalizeName(v).toLocaleLowerCase();
+      if(t.includes('signature')&&t.includes('epic'))return 'Signature Epics';
+      if(t==='commons'||t==='common'||t.includes('common'))return 'Commons';
+      if(t==='rares'||t==='rare'||t.includes('rare'))return 'Rares';
+      if(t==='epics'||t==='epic'||t.includes('epic'))return 'Epics';
+      return '';
+    };
+    const nearestCategory=(table)=>{
+      let node=table.previousElementSibling;
+      for(let i=0;i<16&&node;i++,node=node.previousElementSibling){
+        if(/^H[2-6]$/i.test(node.tagName)){
+          const c=normalizeCat(node.textContent||'');
+          if(c)return c;
+        }
+        const c=normalizeCat(node.getAttribute?.('data-title')||node.getAttribute?.('title')||'');
+        if(c)return c;
+      }
+      return '';
+    };
+    for(const table of doc.querySelectorAll('table')){
+      const rows=[...table.querySelectorAll('tr')];
+      if(rows.length<2)continue;
+      const headerCells=[...rows[0].querySelectorAll(':scope > th,:scope > td')].map(cellPlain);
+      const headerText=headerCells.join(' | ').toLocaleLowerCase();
+      if(!/(relic|name)/i.test(headerText)||!/description/i.test(headerText))continue;
+      let category=nearestCategory(table);
+      const descIndex=Math.max(0,headerCells.findIndex(h=>/description/i.test(h)));
+      const rarityIndex=headerCells.findIndex(h=>/rarity|tier|type/i.test(h));
+      for(const tr of rows.slice(1)){
+        const cells=[...tr.querySelectorAll(':scope > th,:scope > td')];
+        if(cells.length<2)continue;
+        const name=relicNameFromCell(cells[0]);
         const icon=wikiRelicIconFromCell(cells[0]);
-        const desc=wikiRelicDescriptionFromCell(cells[1]);
-        if(!desc && !icon)continue;
-        seen.add(key);
-        out.push({name,rarity:category,wikiCategory:category,icon,desc,source:'wiki'});
+        const descCell=cells[descIndex>=0?descIndex:Math.min(cells.length-1,1)];
+        const desc=wikiRelicDescriptionFromCell(descCell);
+        let rowCat=category;
+        if(!rowCat && rarityIndex>=0)rowCat=normalizeCat(cellPlain(cells[rarityIndex]));
+        if(!rowCat){
+          const rowText=cells.map(cellPlain).join(' ');
+          rowCat=normalizeCat(rowText);
+        }
+        pushRelic(name,desc,icon,rowCat);
       }
     }
   }
@@ -767,11 +834,11 @@ async function loadWikiRelicData(){
   return list;
 }
 function relicCategory(r){
-  const raw=String(r?.wikiCategory||r?.rarity||'').trim().toLocaleLowerCase();
-  if(raw==='commons'||raw==='common')return 'Commons';
-  if(raw==='rares'||raw==='rare')return 'Rares';
-  if(raw==='epics'||raw==='epic')return 'Epics';
-  if(raw==='signature epics'||raw==='signature epic')return 'Signature Epics';
+  const raw=String(r?.wikiCategory||r?.rarity||r?.category||r?.tier||r?.type||'').trim().toLocaleLowerCase();
+  if(raw.includes('signature') && raw.includes('epic'))return 'Signature Epics';
+  if(raw==='commons'||raw==='common'||raw.includes('common'))return 'Commons';
+  if(raw==='rares'||raw==='rare'||raw.includes('rare'))return 'Rares';
+  if(raw==='epics'||raw==='epic'||raw.includes('epic'))return 'Epics';
   return '';
 }
 function relicCategoryClass(r){
@@ -1653,7 +1720,11 @@ function parseBonusStarsTable(table){
     const cost=numericCost(cells[1]);
     const desc=cellPlain(cells[2]);
     if(!name||!desc)continue;
-    out.push({name,cost,desc,number:out.length+1});
+    // Keep the source row's actual Bonus Star number. The export must preserve
+    // gaps (for example selecting 2 and 7 must export 2 and 7, not 1 and 2).
+    const numberMatch=name.match(/(?:bonus\s*star\s*)?(\d+)/i);
+    const number=numberMatch?Number(numberMatch[1]):out.length+1;
+    out.push({name,cost,desc,number});
   }
   return out;
 }
@@ -1767,7 +1838,11 @@ async function loadLiveData(){
     loadWikiAdventures()
   ]);
   let changed=false;
-  if(results[0].status==='fulfilled'){DATA.relics=results[0].value;changed=true}
+  // Never replace a working relic dataset with an empty result from a failed
+  // live source. This was causing the selector to become completely blank.
+  if(results[0].status==='fulfilled' && Array.isArray(results[0].value) && results[0].value.length){
+    DATA.relics=results[0].value;changed=true;
+  }
   if(results[1].status==='fulfilled' && Array.isArray(results[1].value) && results[1].value.length){
     DATA.powers=results[1].value.map(p=>({...p,rarity:powerRarity(p),icon:p.icon||`https://wiki.leagueoflegends.com/en-us/images/thumb/${String(p.id||'').toUpperCase()}.png/400px-${String(p.id||'').toUpperCase()}.png`}));
     changed=true;
@@ -1890,7 +1965,6 @@ function renderAdventureOptions(){
     const groups=getEventAdventureGroups();
     list=groups.flatMap(g=>g.rows);
     for(const group of groups){
-      html+=`<option value="" disabled class="event-group-header">${esc(group.name)}</option>`;
       html+=group.rows.map(a=>`<option value="${esc(a.name)}">${esc(a.name)} — ${esc(a.difficulty)}</option>`).join('');
     }
   }else{
@@ -1908,7 +1982,7 @@ function renderAdventureOptions(){
 }
 function setAdventureCategory(cat){state.adventureCategory=cat;state.adventure='';state.adventureDifficulty='';renderAdventureOptions()}
 function setAdventure(name){
-  const list=getAdventureList(state.adventureCategory),clean=cleanAdventureDisplayName(name);
+  const list=getAdventureList(state.adventureCategory),clean=normalizeName(name);
   const found=list.find(a=>a.name.toLocaleLowerCase()===clean.toLocaleLowerCase())||list.find(a=>a.name.toLocaleLowerCase().startsWith(clean.toLocaleLowerCase()));
   state.adventure=found?.name||clean;state.adventureDifficulty=found?.difficulty||'';
   const select=el('adventureSelect'),input=el('adventureInput'),diff=el('adventureDifficulty');
@@ -1964,8 +2038,12 @@ function renderBonus(){
   grid.style.setProperty('--bonus-cols-mobile',cols);
   grid.innerHTML=DATA.bonus.map((b,i)=>`<label class="bonus-item"><div class="bonus-number">${i+1}</div><input class="check" type="checkbox" ${state.bonus.has(i)?'checked':''} onchange="toggleSet('bonus',${i},this.checked)" aria-label="Bonus Star ${i+1}"></label>`).join('');
 }
-function toggleAllSet(type){const source=type==='stars'?DATA.stars:DATA.bonus;const target=type==='stars'?state.stars:state.bonus;if(!source.length)return;const allSelected=source.every((_,i)=>target.has(i));if(allSelected)target.clear();else source.forEach((_,i)=>target.add(i));renderAll()}
-function toggleSet(type,index,checked){const target=type==='stars'?state.stars:state.bonus;if(checked)target.add(index);else target.delete(index);if(type==='stars')renderStars();else renderBonus();}
+function toggleSet(type,index,checked){
+  const target=type==='stars'?state.stars:state.bonus;
+  if(checked)target.add(index);else target.delete(index);
+  if(type==='stars')renderStars();else renderBonus();
+}
+function toggleAllSet(type){const source=type==='stars'?DATA.stars:DATA.bonus;const target=type==='stars'?state.stars:state.bonus;if(!source.length)return;const allSelected=source.every((_,i)=>target.has(i));if(allSelected)target.clear();else source.forEach((_,i)=>target.add(i));if(type==='stars')renderStars();else renderBonus()}
 function renderRelics(){
   el('relicCount').textContent=`${state.relics.length} / 3`;
   const cards=state.relics.map((idx,n)=>{
@@ -2005,16 +2083,16 @@ function renderRelicFilters(){
   if(modalType!=='relic'){box.innerHTML='';box.style.display='none';return;}
   box.style.display='flex';
   const filters=['COMMONS','RARES','EPICS','SIGNATURE EPICS'];
-  box.innerHTML=filters.map(f=>`<button type="button" class="relic-filter ${relicFilter===f?'active':''}" onclick="setRelicFilter('${f}')">${f}</button>`).join('');
+  box.innerHTML=filters.map(f=>{const cls=f==='COMMONS'?'relic-filter-common':f==='RARES'?'relic-filter-rare':f==='EPICS'?'relic-filter-epic':'relic-filter-signature';return `<button type="button" class="relic-filter ${cls} ${relicFilter===f?'active':''}" onclick="setRelicFilter('${f}')">${f}</button>`}).join('');
 }
 function setRelicFilter(filter){relicFilter=filter||'ALL';renderRelicFilters();renderModalOptions()}
-function openModal(type){modalType=type;el('modalTitle').textContent=type==='relic'?'Select Relic':'Select Power';if(type!=='relic')relicFilter='ALL';el('modalSearch').value='';renderRelicFilters();el('modal').classList.add('open');document.body.classList.add('modal-open');renderModalOptions();setTimeout(()=>el('modalSearch').focus(),30)}
+function openModal(type){modalType=type;el('modalTitle').textContent=type==='relic'?'Select Relic':'Select Power';if(type==='relic')relicFilter='COMMONS';else relicFilter='ALL';el('modalSearch').value='';renderRelicFilters();el('modal').classList.add('open');document.body.classList.add('modal-open');renderModalOptions();setTimeout(()=>el('modalSearch').focus(),30)}
 function closeModal(){el('modal').classList.remove('open');modalType=null;renderRelicFilters();document.body.classList.remove('modal-open')}
 function renderModalOptions(){
   const q=el('modalSearch').value.trim().toLocaleLowerCase();
   const arr=modalType==='relic'?DATA.relics:DATA.powers;
   const filtered=arr.map((x,i)=>({x,i})).filter(o=>{
-    if(modalType==='relic' && relicFilter!=='ALL' && String(relicCategory(o.x)||'').toUpperCase()!==String(relicFilter||'').toUpperCase())return false;
+    if(modalType==='relic' && relicFilter!=='ALL' && relicCategory(o.x)!==relicFilter)return false;
     if(!q)return true;
     const name=String(o.x.name||'').trim().toLocaleLowerCase();
     if(modalType==='relic'){
@@ -2040,7 +2118,7 @@ function renderModalOptions(){
 function addSelected(i){if(modalType==='relic'){if(state.relics.length<3)state.relics.push(i);renderRelics()}else{state.powers.push(i);renderPowers()}renderSummary();closeModal()}
 function renderSummary(){}
 function renderAll(){renderAdventureOptions();renderRegions();renderChampions();renderStars();renderBonus();renderRelics();renderPowers();el('champLabel').textContent=state.champion;}
-async function resetBuild(){state={region:'Bandle City',champion:'',champSearch:'',adventureCategory:'World Adventures',adventure:'',adventureDifficulty:'',stars:new Set(),bonus:new Set(),relics:[],powers:[],notes:''};el('playerNotes').value='';renderAll();try{await refreshSelectedChampionFromWiki()}catch(e){};window.scrollTo({top:0,behavior:'smooth'});document.documentElement.scrollTop=0;document.body.scrollTop=0;}
+async function resetBuild(){state={region:'Bandle City',champion:'',champSearch:'',adventureCategory:'World Adventures',adventure:'',adventureDifficulty:'',stars:new Set(),bonus:new Set(),relics:[],powers:[],notes:''};relicFilter='COMMONS';el('playerNotes').value='';renderAll();try{await refreshSelectedChampionFromWiki()}catch(e){};window.scrollTo({top:0,left:0,behavior:'smooth'});setTimeout(()=>window.scrollTo(0,0),450)}
 
 let imagePreviewUrl='';
 let imagePreviewFilename='LoR_PoC_Build.png';
@@ -2162,30 +2240,22 @@ function drawBadge(ctx,text,x,y){
 async function safeImage(src){
   return new Promise(resolve=>{
     if(!src)return resolve(null);
-    const candidates=[String(src)];
-    try{
-      const u=new URL(src,location.href);
-      if(u.origin!==location.origin){
-        candidates.push('https://images.weserv.nl/?url='+encodeURIComponent(u.href));
-      }
-    }catch(e){}
-    let index=0;
-    const tryNext=()=>{
-      if(index>=candidates.length)return resolve(null);
-      const current=candidates[index++];
-      const img=new Image();
-      let done=false;
-      const finish=value=>{if(done)return;done=true;clearTimeout(timer);resolve(value)};
-      const timer=setTimeout(()=>{if(!done)tryNext()},5000);
-      img.crossOrigin='anonymous';
-      img.onload=()=>finish(img);
-      img.onerror=()=>tryNext();
-      img.src=current;
+    const img=new Image();
+    let done=false;
+    const finish=value=>{if(done)return;done=true;clearTimeout(timer);resolve(value)};
+    const timer=setTimeout(()=>finish(null),3000);
+    img.crossOrigin='anonymous';
+    img.onload=()=>{
+      try{
+        const c=document.createElement('canvas');c.width=1;c.height=1;
+        const g=c.getContext('2d');g.drawImage(img,0,0,1,1);g.getImageData(0,0,1,1);
+        finish(img);
+      }catch(e){finish(null);}
     };
-    tryNext();
+    img.onerror=()=>finish(null);
+    img.src=src;
   });
 }
-
 function drawIcon(ctx,icon,x,y,size=44){roundRect(ctx,x,y,size,size,8,'#182332','#405063');ctx.font=`${Math.round(size*.48)}px Arial`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#edf2f7';ctx.fillText(icon,x+size/2,y+size/2+1);ctx.textAlign='left';ctx.textBaseline='alphabetic';}
 function drawSectionTitle(ctx,title,y,count){roundRect(ctx,16,y,728,38,8,'#202a37','#303b4a');ctx.font='700 16px Arial';ctx.fillStyle='#edf2f7';ctx.fillText(title,30,y+25);if(count){ctx.font='12px Arial';ctx.fillStyle='#9aa8b8';ctx.textAlign='right';ctx.fillText(count,730,y+24);ctx.textAlign='left';}return y+48;}
 function showExportStatus(type,message){
@@ -2216,12 +2286,35 @@ async function exportPNGManualFallback(){
     let y=30;
 
     const selectedStars=[...state.stars].map(i=>DATA.stars[i]).filter(Boolean);
-    const selectedBonus=[...state.bonus].map(i=>DATA.bonus[i]).filter(Boolean);
-    const selectedRelics=state.relics.map(i=>DATA.relics[i]).filter(Boolean);
-    const selectedPowers=state.powers.map(i=>DATA.powers[i]).filter(Boolean);
-    const region=DATA.regions.find(r=>r.name===state.region);
+
+    // IMPORTANT: Export the values currently shown/checked in the editor UI.
+    // Live Wiki refreshes can reorder DATA arrays after the user has made a
+    // selection; using the array index alone could turn selected 3,7 into 1,2
+    // or make selected relics disappear.
+    const selectedBonus=[...document.querySelectorAll('#bonus .bonus-item')].filter(node=>{
+      const cb=node.querySelector('input[type=checkbox]');
+      return !!cb?.checked;
+    }).map(node=>({
+      number:Number(node.querySelector('.bonus-number')?.textContent||0)
+    })).filter(x=>Number.isFinite(x.number)&&x.number>0);
+
+    const selectedRelics=[...document.querySelectorAll('#relicSlots .slot')].map(node=>({
+      name:String(node.querySelector('.relic-name-cell .name')?.textContent||'').trim(),
+      icon:node.querySelector('.relic-icon-cell img')?.getAttribute('src')||'',
+      rarity:String(node.querySelector('.relic-rarity-cell')?.textContent||'').trim(),
+      desc:String(node.querySelector('.relic-desc-cell')?.textContent||'').trim()
+    })).filter(x=>x.name);
+
+    const selectedPowers=[...document.querySelectorAll('#powerList .power-row')].map(node=>({
+      name:String(node.querySelector('.power-name')?.textContent||'').trim(),
+      icon:node.querySelector('.power-icon img')?.getAttribute('src')||'',
+      rarity:String(node.querySelector('.power-rarity')?.textContent||'').trim(),
+      desc:String(node.querySelector('.power-desc')?.textContent||'').trim()
+    })).filter(x=>x.name);
+
     const champ=DATA.champions.find(c=>c.name===state.champion);
     const noteText=(state.notes||'').trim();
+    const adventureName=(state.adventure||el('adventureInput')?.value||'').trim();
 
     // Calculate note height before drawing.
     const noteCharsPerLine=92;
@@ -2231,12 +2324,11 @@ async function exportPNGManualFallback(){
     // Dynamic height. There is deliberately NO social-media height cap.
     let H=0;
     H += 178;                 // header
-    H += 8 + 78;              // identity: single compact row directly under header
-    if(state.adventure)      H += 62 + 54;
+    if(adventureName)         H += 62 + 54;
     if(selectedStars.length)  H += 18 + 52 + Math.ceil(selectedStars.length/3)*68;
     if(selectedBonus.length)  H += 18 + 52 + Math.ceil(selectedBonus.length/5)*58;
     if(selectedRelics.length) H += 18 + 52 + selectedRelics.length*96;
-    if(selectedPowers.length) H += 18 + 52 + selectedPowers.length*68;
+    if(selectedPowers.length) H += 18 + 52 + selectedPowers.length*96;
     if(noteText)              H += 18 + 52 + noteH;
     H += 42;                  // footer
     H=Math.ceil(H);
@@ -2335,9 +2427,31 @@ async function exportPNGManualFallback(){
     ctx.fillStyle='#f3f7fb';
     ctx.fillText('LoR PoC Build',P,70);
 
-    ctx.font='800 30px Arial';
+    // Selected champion: move name + circular icon to the right side of the header.
+    const cImg=await safeImage(champ?.img);
+    const headerPortraitSize=58;
+    const headerPortraitX=W-P-headerPortraitSize;
+    const headerPortraitY=54;
+    if(cImg){
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(headerPortraitX+headerPortraitSize/2,headerPortraitY+headerPortraitSize/2,headerPortraitSize/2-1,0,Math.PI*2);
+      ctx.clip();
+      ctx.drawImage(cImg,headerPortraitX,headerPortraitY,headerPortraitSize,headerPortraitSize);
+      ctx.restore();
+      ctx.strokeStyle='#f3c54e';
+      ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.arc(headerPortraitX+headerPortraitSize/2,headerPortraitY+headerPortraitSize/2,headerPortraitSize/2,0,Math.PI*2);
+      ctx.stroke();
+    }else{
+      drawPosterIcon((state.champion||'?').slice(0,1),headerPortraitX+7,headerPortraitY+7,44);
+    }
+    ctx.font='800 26px Arial';
     ctx.fillStyle='#f3c54e';
-    ctx.fillText(state.champion||'Unknown Champion',P,100);
+    ctx.textAlign='right';
+    ctx.fillText(state.champion||'Unknown Champion',headerPortraitX-16,headerPortraitY+37);
+    ctx.textAlign='left';
 
     const generated=new Intl.DateTimeFormat('en-US',{
       year:'numeric',
@@ -2359,119 +2473,67 @@ async function exportPNGManualFallback(){
     ctx.fillText('Made by penguinsgor',W-P-4,124);
     ctx.textAlign='left';
 
+    // Region and loadout-count identity row intentionally omitted from the export.
     y=140;
 
-    // Identity row: 3 columns on the same line.
-    const identityH=78;
-    roundRect(ctx,P,y,innerW,identityH,14,'rgba(7,20,33,.94)','#2c6b91');
-
-    const colW=innerW/3;
-    const centerY=y+identityH/2;
-    const div1=P+colW;
-    const div2=P+colW*2;
-    line(div1,y+15,div1,y+63,'#214966',1);
-    line(div2,y+15,div2,y+63,'#214966',1);
-
-    // Column 1 — Region
-    const rImg=await safeImage(region?.img);
-    const regionIconSize=46;
-    const regionIconX=P+20;
-    const regionIconY=Math.round(centerY-regionIconSize/2);
-    if(rImg){
-      ctx.drawImage(rImg,regionIconX,regionIconY,regionIconSize,regionIconSize);
-    }else{
-      drawPosterIcon('✦',regionIconX+2,regionIconY+2,42);
-    }
-    ctx.font='800 20px Arial';
-    ctx.fillStyle='#eef5ff';
-    ctx.fillText(region?.name||state.region,P+78,centerY+7);
-
-    // Column 2 — Champion
-    const cImg=await safeImage(champ?.img);
-    const portraitSize=50;
-    const portraitX=Math.round(div1+22);
-    const portraitY=Math.round(centerY-portraitSize/2);
-    if(cImg){
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(portraitX+portraitSize/2,portraitY+portraitSize/2,portraitSize/2-1,0,Math.PI*2);
-      ctx.clip();
-      ctx.drawImage(cImg,portraitX,portraitY,portraitSize,portraitSize);
-      ctx.restore();
-      ctx.strokeStyle='#f3c54e';
-      ctx.lineWidth=2;
-      ctx.beginPath();
-      ctx.arc(portraitX+portraitSize/2,portraitY+portraitSize/2,portraitSize/2,0,Math.PI*2);
-      ctx.stroke();
-    }else{
-      drawPosterIcon((state.champion||'?').slice(0,1),portraitX+3,portraitY+3,44);
-    }
-    const champTextX=portraitX+64;
-    ctx.font='800 20px Arial';
-    ctx.fillStyle='#eef5ff';
-    ctx.fillText(state.champion||'Unknown Champion',champTextX,centerY+7);
-
-    // Column 3 — Current loadout counts
-    const loadoutX=div2+22;
-    ctx.font='800 11px Arial';
-    ctx.fillStyle='#f3c54e';
-    ctx.fillText('CURRENT LOADOUT',loadoutX,centerY-8);
-    ctx.font='700 17px Arial';
-    ctx.fillStyle='#eef5ff';
-    ctx.fillText(`Relics ${state.relics.length}/3`,loadoutX,centerY+16);
-    ctx.fillStyle='#9eb4c8';
-    ctx.font='700 15px Arial';
-    ctx.fillText(`Powers ${state.powers.length}`,loadoutX+118,centerY+16);
-
-    y+=identityH+8;
-
-    if(state.adventure){
-      posterSection('Adventure',state.adventureDifficulty||'');
+    if(adventureName){
+      posterSection('Adventure',adventureName);
       posterRow(P,y,innerW,54);
-      ctx.font='800 18px Arial';ctx.fillStyle='#eef5ff';ctx.fillText(state.adventure,P+18,y+24);
+      ctx.font='800 18px Arial';ctx.fillStyle='#eef5ff';ctx.fillText(adventureName,P+18,y+24);
       ctx.font='700 13px Arial';ctx.fillStyle='#f3c54e';ctx.fillText(state.adventureDifficulty||'—',P+18,y+44);
       y+=54;
     }
 
-    async function drawItems(title,items){
+    async function drawPowerTable(items){
       if(!items.length)return;
-      posterSection(title,`${items.length} selected`);
-      const exportPowers=title==='Powers';
-      const displayItems=exportPowers?[...items].reverse():items;
-      for(let displayIndex=0;displayIndex<displayItems.length;displayIndex++){
-        const item=displayItems[displayIndex];
-        const rowH=58;
-        // Powers use the same table language as the editor: index, icon, name, rarity, description.
-        posterRow(P,y,innerW,rowH,'rgba(16,34,55,.72)');
-        if(exportPowers){
-          line(P+82,y+8,P+82,y+rowH-8,'#214966',1);
-          line(P+142,y+8,P+142,y+rowH-8,'#214966',1);
-          line(P+360,y+8,P+360,y+rowH-8,'#214966',1);
-          ctx.font='800 13px Arial';ctx.fillStyle='#9eb4c8';ctx.textAlign='center';
-          ctx.fillText(powerOrderLabel(displayIndex,displayItems.length),P+41,y+34);ctx.textAlign='left';
-          const pImg=await safeImage(item.icon);
-          if(pImg)ctx.drawImage(pImg,P+91,y+7,42,42);else drawPosterIcon('✦',P+91,y+7,42);
-          ctx.font='800 14px Arial';ctx.fillStyle='#eef5ff';
-          wrapText(ctx,item.name,P+154,y+22,194,18,2);
-          const pc=powerRarity(item);
-          const pColor=pc==='Common'?'#8ed36f':pc==='Rare'?'#8fb6ff':pc==='Epic'?'#c084fc':'#f0a54a';
-          ctx.font='800 9px Arial';ctx.fillStyle=pColor;
-          ctx.fillText(String(pc||'').toUpperCase(),P+154,y+48);
-          ctx.font='11px Arial';ctx.fillStyle='#eef5ff';
-          wrapText(ctx,item.desc||'',P+372,y+22,innerW-(372-P)-16,15,2);
-        }else{
-          const pImg=await safeImage(item.icon);
-          if(pImg)ctx.drawImage(pImg,P+10,y+7,44,44);else drawPosterIcon('⭐',P+10,y+7,44);
-          ctx.font='800 15px Arial';ctx.fillStyle='#eef5ff';ctx.fillText(item.name,P+70,y+22);
-          ctx.font='12px Arial';ctx.fillStyle='#8fb0c9';
-          wrapText(ctx,`${item.rarity?item.rarity+'  ·  ':''}${item.desc||''}`,P+70,y+42,innerW-88,14,2);
-        }
-        y+=68;
+      posterSection('Powers','');
+      // Match the editor's 5-column Power table: order / icon / name / rarity / description.
+      // Display order is reversed so the last selected power is First Power.
+      const displayItems=[...items].reverse();
+      const cols=[54,82,220,140];
+      const descX=P+cols[0]+cols[1]+cols[2]+12;
+      const tableW=innerW;
+      for(let pi=0;pi<displayItems.length;pi++){
+        const item=displayItems[pi]||{};
+        const descLines=Math.max(1,Math.min(4,Math.ceil(String(item.desc||'').length/58)));
+        const rowH=Math.max(72,descLines*20+24);
+        posterRow(P,y,tableW,rowH);
+        line(P+cols[0],y+8,P+cols[0],y+rowH-8,'#214966',1);
+        line(P+cols[0]+cols[1],y+8,P+cols[0]+cols[1],y+rowH-8,'#214966',1);
+        line(P+cols[0]+cols[1]+cols[2],y+8,P+cols[0]+cols[1]+cols[2],y+rowH-8,'#214966',1);
+
+        ctx.font='800 16px Arial';
+        ctx.fillStyle='#9eb4c8';
+        ctx.textAlign='center';
+        ctx.fillText(powerOrderLabel(pi,displayItems.length),P+cols[0]/2,y+rowH/2+6);
+        ctx.textAlign='left';
+
+        const img=await safeImage(item.icon);
+        const is=54;
+        const ix=P+cols[0]+(cols[1]-is)/2;
+        const iy=y+(rowH-is)/2;
+        if(img)ctx.drawImage(img,ix,iy,is,is);
+        else drawPosterIcon('✦',ix+5,iy+5,44);
+
+        ctx.font='800 16px Arial';
+        ctx.fillStyle='#eef5ff';
+        wrapText(ctx,item.name||'',P+cols[0]+cols[1]+12,y+25,cols[2]-24,20,3);
+
+        const rarity=String(item.rarity||'').trim();
+        const rarityColor=/legendary/i.test(rarity)?'#f39c4a':/epic/i.test(rarity)?'#c084fc':/rare/i.test(rarity)?'#8fb6ff':'#8ed36f';
+        ctx.font='800 11px Arial';
+        ctx.fillStyle=rarityColor;
+        ctx.fillText(rarity.toUpperCase(),P+cols[0]+cols[1]+12,y+rowH-12);
+
+        ctx.font='12px Arial';
+        ctx.fillStyle='#eef5ff';
+        wrapText(ctx,item.desc||'',descX,y+25,innerW-(cols[0]+cols[1]+cols[2])-24,18,descLines);
+        y+=rowH+10;
       }
     }
 
     if(selectedStars.length){
-      posterSection('Star Powers',`${selectedStars.length} selected`);
+      posterSection('Star Powers','');
       const starCols=3;
       const starGap=10;
       const starW=(innerW-starGap*(starCols-1))/starCols;
@@ -2494,18 +2556,18 @@ async function exportPNGManualFallback(){
     }
 
     if(selectedBonus.length){
-      posterSection('Bonus Stars',`${selectedBonus.length} selected`);
+      posterSection('Bonus Stars','');
       const bonusCols=5;
       const bonusGap=10;
       const bonusW=(innerW-bonusGap*(bonusCols-1))/bonusCols;
       for(let row=0;row<Math.ceil(selectedBonus.length/bonusCols);row++){
         const rowItems=selectedBonus.slice(row*bonusCols,row*bonusCols+bonusCols);
         const rowH=50;
-        rowItems.forEach((item,col)=>{
+        rowItems.forEach((entry,col)=>{
           const bx=P+col*(bonusW+bonusGap);
           posterRow(bx,y,bonusW,rowH);
           ctx.font='800 22px Arial';ctx.fillStyle='#f3c54e';ctx.textAlign='center';
-          ctx.fillText(String(item.number||DATA.bonus.indexOf(item)+1),bx+bonusW/2,y+33);ctx.textAlign='left';
+          ctx.fillText(String(entry.item?.number||entry.number),bx+bonusW/2,y+33);ctx.textAlign='left';
         });
         y+=60;
       }
@@ -2513,7 +2575,7 @@ async function exportPNGManualFallback(){
 
     async function drawRelicTable(items){
       if(!items.length)return;
-      posterSection('Relics',`${items.length} selected`);
+      posterSection('Relics','');
       const cols=[54,82,220,140];
       const descX=P+cols[0]+cols[1]+cols[2]+12;
       const tableW=innerW;
@@ -2540,7 +2602,7 @@ async function exportPNGManualFallback(){
     }
 
     await drawRelicTable(selectedRelics);
-    await drawItems('Powers',selectedPowers);
+    await drawPowerTable(selectedPowers);
 
     if(noteText){
       posterSection('Player Notes','');
@@ -2584,8 +2646,7 @@ async function exportPNGManualFallback(){
       0,0,out.width,out.height
     );
 
-    // Prefer the native mobile share sheet. On iPhone/iPad this exposes "Save Image"
-    // when the browser supports sharing image files; otherwise fall back to opening the PNG.
+    // Direct download only: no preview and no share sheet.
     const filename=`LoR_PoC_${(state.champion||'Build').replace(/[^a-z0-9_-]+/gi,'_')}_Build.png`;
     let blob=null;
     if(typeof out.toBlob==='function'){
@@ -2626,11 +2687,7 @@ async function exportPNGManualFallback(){
       document.body.appendChild(a);
       try{a.click();}
       finally{setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},3000)}
-      if(window.top!==window.self){
-        showExportStatus('success','PNG generated. If Wix blocks the browser download, open this HTML as a standalone page to download directly.');
-      }else{
-        showExportStatus('success',`PNG downloaded: ${filename}`);
-      }
+      showExportStatus('success',`PNG download requested: ${filename}`);
     }
   }catch(err){
     console.error('PNG export failed:',err);
