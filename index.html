@@ -2324,11 +2324,11 @@ async function exportPNGManualFallback(){
     // Dynamic height. There is deliberately NO social-media height cap.
     let H=0;
     H += 178;                 // header
-    if(adventureName)         H += 62 + 54;
+    if(adventureName)         H += 64 + 12;
     if(selectedStars.length)  H += 18 + 52 + Math.ceil(selectedStars.length/3)*68;
     if(selectedBonus.length)  H += 18 + 52 + Math.ceil(selectedBonus.length/5)*58;
-    if(selectedRelics.length) H += 18 + 52 + selectedRelics.length*96;
-    if(selectedPowers.length) H += 18 + 52 + selectedPowers.length*96;
+    if(selectedRelics.length) H += 18 + 52 + selectedRelics.length*112;
+    if(selectedPowers.length) H += 18 + 52 + selectedPowers.length*112;
     if(noteText)              H += 18 + 52 + noteH;
     H += 42;                  // footer
     H=Math.ceil(H);
@@ -2467,40 +2467,48 @@ async function exportPNGManualFallback(){
     ctx.fillStyle='#9eb4c8';
     ctx.fillText('Generated '+generated,P,124);
 
-    ctx.font='italic 13px Arial';
-    ctx.fillStyle='#d5dee7';
-    ctx.textAlign='right';
-    ctx.fillText('Made by penguinsgor',W-P-4,124);
-    ctx.textAlign='left';
 
     // Region and loadout-count identity row intentionally omitted from the export.
     y=140;
 
     if(adventureName){
-      posterSection('Adventure',adventureName);
-      posterRow(P,y,innerW,54);
-      ctx.font='800 18px Arial';ctx.fillStyle='#eef5ff';ctx.fillText(adventureName,P+18,y+24);
-      ctx.font='700 13px Arial';ctx.fillStyle='#f3c54e';ctx.fillText(state.adventureDifficulty||'—',P+18,y+44);
-      y+=54;
+      // Compact one-line Adventure row: title + adventure name + difficulty.
+      const adventureH=64;
+      posterRow(P,y,innerW,adventureH,'rgba(9,30,49,.88)');
+      ctx.fillStyle='#f3c54e';
+      ctx.fillRect(P+15,y+16,5,32);
+      ctx.font='800 20px Arial';
+      ctx.fillStyle='#eef5ff';
+      ctx.fillText('Adventure',P+31,y+39);
+      ctx.font='800 17px Arial';
+      ctx.fillStyle='#eef5ff';
+      const advNameX=P+160;
+      ctx.fillText(adventureName,advNameX,y+39);
+      ctx.font='800 13px Arial';
+      ctx.fillStyle='#f3c54e';
+      ctx.textAlign='right';
+      ctx.fillText(state.adventureDifficulty||'—',P+innerW-18,y+39);
+      ctx.textAlign='left';
+      y+=adventureH+12;
     }
 
     async function drawPowerTable(items){
       if(!items.length)return;
       posterSection('Powers','');
-      // Match the editor's 5-column Power table: order / icon / name / rarity / description.
-      // Display order is reversed so the last selected power is First Power.
+      // Export table: Order / Icon / Name / Rarity / Description.
       const displayItems=[...items].reverse();
-      const cols=[54,82,220,140];
-      const descX=P+cols[0]+cols[1]+cols[2]+12;
-      const tableW=innerW;
+      const cols=[54,82,220,125];
+      const descX=P+cols[0]+cols[1]+cols[2]+cols[3]+12;
+      const descW=innerW-(cols[0]+cols[1]+cols[2]+cols[3])-24;
       for(let pi=0;pi<displayItems.length;pi++){
         const item=displayItems[pi]||{};
-        const descLines=Math.max(1,Math.min(4,Math.ceil(String(item.desc||'').length/58)));
-        const rowH=Math.max(72,descLines*20+24);
-        posterRow(P,y,tableW,rowH);
+        const descLines=Math.max(1,Math.min(5,Math.ceil(String(item.desc||'').length/52)));
+        const rowH=Math.max(78,descLines*21+24);
+        posterRow(P,y,innerW,rowH);
         line(P+cols[0],y+8,P+cols[0],y+rowH-8,'#214966',1);
         line(P+cols[0]+cols[1],y+8,P+cols[0]+cols[1],y+rowH-8,'#214966',1);
         line(P+cols[0]+cols[1]+cols[2],y+8,P+cols[0]+cols[1]+cols[2],y+rowH-8,'#214966',1);
+        line(P+cols[0]+cols[1]+cols[2]+cols[3],y+8,P+cols[0]+cols[1]+cols[2]+cols[3],y+rowH-8,'#214966',1);
 
         ctx.font='800 16px Arial';
         ctx.fillStyle='#9eb4c8';
@@ -2517,17 +2525,18 @@ async function exportPNGManualFallback(){
 
         ctx.font='800 16px Arial';
         ctx.fillStyle='#eef5ff';
-        wrapText(ctx,item.name||'',P+cols[0]+cols[1]+12,y+25,cols[2]-24,20,3);
+        wrapText(ctx,item.name||'',P+cols[0]+cols[1]+12,y+27,cols[2]-24,20,3);
 
         const rarity=String(item.rarity||'').trim();
         const rarityColor=/legendary/i.test(rarity)?'#f39c4a':/epic/i.test(rarity)?'#c084fc':/rare/i.test(rarity)?'#8fb6ff':'#8ed36f';
         ctx.font='800 11px Arial';
         ctx.fillStyle=rarityColor;
-        ctx.fillText(rarity.toUpperCase(),P+cols[0]+cols[1]+12,y+rowH-12);
+        wrapText(ctx,rarity.toUpperCase(),P+cols[0]+cols[1]+cols[2]+12,y+27,cols[3]-24,16,2);
 
-        ctx.font='12px Arial';
+        // Larger, more readable description in the 5th column.
+        ctx.font='14px Arial';
         ctx.fillStyle='#eef5ff';
-        wrapText(ctx,item.desc||'',descX,y+25,innerW-(cols[0]+cols[1]+cols[2])-24,18,descLines);
+        wrapText(ctx,item.desc||'',descX,y+27,descW,20,descLines);
         y+=rowH+10;
       }
     }
@@ -2576,27 +2585,40 @@ async function exportPNGManualFallback(){
     async function drawRelicTable(items){
       if(!items.length)return;
       posterSection('Relics','');
-      const cols=[54,82,220,140];
-      const descX=P+cols[0]+cols[1]+cols[2]+12;
+      // Export table: Order / Icon / Name / Rarity / Description.
+      const cols=[54,82,220,125];
+      const descX=P+cols[0]+cols[1]+cols[2]+cols[3]+12;
       const tableW=innerW;
+      const descW=innerW-(cols[0]+cols[1]+cols[2]+cols[3])-24;
       for(let ri=0;ri<items.length;ri++){
         const item=items[ri];
-        const descLines=Math.max(1,Math.min(4,Math.ceil(String(item.desc||'').length/58)));
-        const rowH=Math.max(72,descLines*20+24);
+        const descLines=Math.max(1,Math.min(5,Math.ceil(String(item.desc||'').length/52)));
+        const rowH=Math.max(78,descLines*21+24);
         posterRow(P,y,tableW,rowH);
         let x=P;
         line(x+cols[0],y+8,x+cols[0],y+rowH-8,'#214966',1);
         line(x+cols[0]+cols[1],y+8,x+cols[0]+cols[1],y+rowH-8,'#214966',1);
         line(x+cols[0]+cols[1]+cols[2],y+8,x+cols[0]+cols[1]+cols[2],y+rowH-8,'#214966',1);
-        ctx.font='800 18px Arial';ctx.fillStyle='#9eb4c8';ctx.textAlign='center';ctx.fillText(String(ri+1),P+cols[0]/2,y+rowH/2+6);ctx.textAlign='left';
+        line(x+cols[0]+cols[1]+cols[2]+cols[3],y+8,x+cols[0]+cols[1]+cols[2]+cols[3],y+rowH-8,'#214966',1);
+
+        ctx.font='800 18px Arial';ctx.fillStyle='#9eb4c8';ctx.textAlign='center';
+        ctx.fillText(String(ri+1),P+cols[0]/2,y+rowH/2+6);ctx.textAlign='left';
+
         const img=await safeImage(item.icon);
         const is=54, ix=P+cols[0]+(cols[1]-is)/2, iy=y+(rowH-is)/2;
         if(img)ctx.drawImage(img,ix,iy,is,is); else drawPosterIcon('✦',ix+5,iy+5,44);
-        ctx.font='800 16px Arial';ctx.fillStyle='#eef5ff';wrapText(ctx,item.name,P+cols[0]+cols[1]+12,y+25,cols[2]-24,20,3);
+
+        ctx.font='800 16px Arial';ctx.fillStyle='#eef5ff';
+        wrapText(ctx,item.name,P+cols[0]+cols[1]+12,y+27,cols[2]-24,20,3);
+
         const cat=relicCategory(item);
-        const catColor=cat==='Commons'?'#8ed36f':cat==='Rares'?'#8fb6ff':'#c084fc';
-        ctx.font='800 11px Arial';ctx.fillStyle=catColor;ctx.fillText(String(cat||'').toUpperCase(),P+cols[0]+cols[1]+12,y+rowH-12);
-        ctx.font='12px Arial';ctx.fillStyle='#eef5ff';wrapText(ctx,item.desc||'',descX,y+25,innerW-(cols[0]+cols[1]+cols[2])-24,18,descLines);
+        const catColor=cat==='Commons'?'#8ed36f':cat==='Rares'?'#8fb6ff':/signature/i.test(cat)?'#c084fc':'#c084fc';
+        ctx.font='800 11px Arial';ctx.fillStyle=catColor;
+        wrapText(ctx,String(cat||'').toUpperCase(),P+cols[0]+cols[1]+cols[2]+12,y+27,cols[3]-24,16,2);
+
+        // Larger, more readable description in the 5th column.
+        ctx.font='14px Arial';ctx.fillStyle='#eef5ff';
+        wrapText(ctx,item.desc||'',descX,y+27,descW,20,descLines);
         y+=rowH+10;
       }
     }
