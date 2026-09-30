@@ -2359,7 +2359,13 @@ async function exportPNGManualFallback(){
     const selectedStars=[...state.stars]
       .map(i=>DATA.stars[i])
       .filter(Boolean)
-      .sort((a,b)=>Number(a?.starLevel||0)-Number(b?.starLevel||0));
+      .sort((a,b)=>{
+        const av=(a?.kind==='rune') ? Number.POSITIVE_INFINITY : Number(a?.star ?? a?.starLevel ?? 0);
+        const bv=(b?.kind==='rune') ? Number.POSITIVE_INFINITY : Number(b?.star ?? b?.starLevel ?? 0);
+        const an=Number.isFinite(av)?av:Number.POSITIVE_INFINITY;
+        const bn=Number.isFinite(bv)?bv:Number.POSITIVE_INFINITY;
+        return an-bn;
+      });
 
     // IMPORTANT: Export the values currently shown/checked in the editor UI.
     // Live Wiki refreshes can reorder DATA arrays after the user has made a
@@ -2396,12 +2402,12 @@ async function exportPNGManualFallback(){
     const noteH=noteText ? Math.max(92,Math.min(420,54+noteLines*23)) : 0;
 
     // Dynamic height. There is deliberately NO social-media height cap.
-    // Relic/Power descriptions are exported at 16px, so reserve height from
+    // Relic/Power descriptions are exported at 20px, so reserve height from
     // their wrapped text instead of assuming a fixed row height.
-    const exportTableRowsH=(items,charsPerLine=44,lineH=23,minH=82,maxLines=5)=>items.reduce((sum,item)=>{
+    const exportTableRowsH=(items,charsPerLine=44,lineH=28,minH=92,maxLines=6)=>items.reduce((sum,item)=>{
       const desc=String(item?.desc||'');
       const lines=Math.max(1,Math.min(maxLines,Math.ceil(desc.length/charsPerLine)));
-      return sum+Math.max(minH,lines*lineH+24)+10;
+      return sum+Math.max(minH,lines*lineH+28)+10;
     },0);
     let H=0;
     H += 178;                 // header
@@ -2506,7 +2512,7 @@ async function exportPNGManualFallback(){
 
     ctx.font='800 40px Arial';
     ctx.fillStyle='#f3f7fb';
-    ctx.fillText('LoR PoC Build',P,82);
+    ctx.fillText('LoR PoC Build',P,90);
 
     // Selected champion: move name + circular icon to the right side of the header.
     const cImg=await safeImage(champ?.img);
@@ -2583,8 +2589,8 @@ async function exportPNGManualFallback(){
       const descW=innerW-(cols[0]+cols[1]+cols[2]+cols[3])-24;
       for(let pi=0;pi<displayItems.length;pi++){
         const item=displayItems[pi]||{};
-        const descLines=Math.max(1,Math.min(5,Math.ceil(String(item.desc||'').length/44)));
-        const rowH=Math.max(82,descLines*23+24);
+        const descLines=Math.max(1,Math.min(6,Math.ceil(String(item.desc||'').length/44)));
+        const rowH=Math.max(92,descLines*28+28);
         posterRow(P,y,innerW,rowH);
         line(P+cols[0],y+8,P+cols[0],y+rowH-8,'#214966',1);
         line(P+cols[0]+cols[1],y+8,P+cols[0]+cols[1],y+rowH-8,'#214966',1);
@@ -2616,9 +2622,9 @@ async function exportPNGManualFallback(){
         wrapText(ctx,rarity.toUpperCase(),P+cols[0]+cols[1]+cols[2]+12,y+27,cols[3]-24,16,2);
 
         // Larger, more readable description in the 5th column.
-        ctx.font='16px Arial';
+        ctx.font='20px Arial';
         ctx.fillStyle='#eef5ff';
-        wrapText(ctx,item.desc||'',descX,y+29,descW,23,descLines);
+        wrapText(ctx,item.desc||'',descX,y+32,descW,28,descLines);
         y+=rowH+10;
       }
     }
@@ -2674,8 +2680,8 @@ async function exportPNGManualFallback(){
       const descW=innerW-(cols[0]+cols[1]+cols[2]+cols[3])-24;
       for(let ri=0;ri<items.length;ri++){
         const item=items[ri];
-        const descLines=Math.max(1,Math.min(5,Math.ceil(String(item.desc||'').length/44)));
-        const rowH=Math.max(78,descLines*23+24);
+        const descLines=Math.max(1,Math.min(6,Math.ceil(String(item.desc||'').length/44)));
+        const rowH=Math.max(92,descLines*28+28);
         posterRow(P,y,tableW,rowH);
         let x=P;
         line(x+cols[0],y+8,x+cols[0],y+rowH-8,'#214966',1);
@@ -2699,8 +2705,8 @@ async function exportPNGManualFallback(){
         wrapText(ctx,String(cat||'').toUpperCase(),P+cols[0]+cols[1]+cols[2]+12,y+27,cols[3]-24,16,2);
 
         // Larger, more readable description in the 5th column.
-        ctx.font='16px Arial';ctx.fillStyle='#eef5ff';
-        wrapText(ctx,item.desc||'',descX,y+29,descW,23,descLines);
+        ctx.font='20px Arial';ctx.fillStyle='#eef5ff';
+        wrapText(ctx,item.desc||'',descX,y+32,descW,28,descLines);
         y+=rowH+10;
       }
     }
