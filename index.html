@@ -65,7 +65,7 @@
   <div class="sub">Build a Path of Champions setup, then export a phone-friendly PNG.</div>
 </header>
 
-<section id="adventureSection"><div class="title"><span>Adventure</span><div class="adventure-tools"><select id="adventureCategory" class="adventure-select" aria-label="Adventure category"><option value="World Adventures">World Adventures</option><option value="Nightmare Adventures">Nightmare Adventures</option><option value="Event Campaigns">Event Campaigns</option></select><div class="adventure-row"><input id="adventureInput" class="adventure-input" type="text" list="adventureList" autocomplete="off" spellcheck="false" placeholder="Type adventure name..." aria-label="Adventure name"><select id="adventureSelect" class="adventure-select" aria-label="Choose adventure"><option value="">Select adventure...</option></select></div></div></div><div class="body"><div class="adventure-row"><div class="adventure-empty" id="adventureStatus">Loading live adventures…</div><div class="adventure-difficulty" id="adventureDifficulty">—</div></div><datalist id="adventureList"></datalist></div></section>
+<section id="adventureSection"><div class="title"><span>Adventure</span><div class="adventure-tools"><select id="adventureCategory" class="adventure-select" aria-label="Adventure category"><option value="World Adventures">World Adventures</option><option value="Nightmare Adventures">Nightmare Adventures</option><option value="Event Campaigns">Event Campaigns</option><option value="Other">Other</option></select><div class="adventure-row"><input id="adventureInput" class="adventure-input" type="text" list="adventureList" autocomplete="off" spellcheck="false" placeholder="Type adventure name..." aria-label="Adventure name"><select id="adventureSelect" class="adventure-select" aria-label="Choose adventure"><option value="">Select adventure...</option></select></div></div></div><div class="body"><div class="adventure-row"><div class="adventure-empty" id="adventureStatus">Loading live adventures…</div><div class="adventure-difficulty" id="adventureDifficulty">—</div></div><datalist id="adventureList"></datalist></div></section>
 
 <section><div class="title">Region <small id="regionLabel">Bandle City</small></div><div class="body"><div class="region-grid" id="regions"></div></div></section>
 
@@ -2037,34 +2037,71 @@ function renderAdventureOptions(){
   if(!select||!input)return;
   let html='<option value="">Select adventure...</option>';
   let list=[];
+  if(cat==='Other'){
+    // "Other" is a category in the top selector. It is intentionally free-text:
+    // there is no live adventure list for this category.
+    html+=`<option value="${ADVENTURE_OTHER_VALUE}">Other</option>`;
+    select.innerHTML=html;
+    if(dl)dl.innerHTML='';
+    input.value=state.adventure||'';
+    input.placeholder='Type adventure name...';
+    select.value=ADVENTURE_OTHER_VALUE;
+    el('adventureDifficulty').textContent='—';
+    const status=el('adventureStatus');
+    if(status)status.textContent='Other · enter an adventure name';
+    return;
+  }
   if(cat==='Event Campaigns'){
     const groups=getEventAdventureGroups();
     list=groups.flatMap(g=>g.rows);
     for(const group of groups){
+      // Small non-selectable red separators make the five Event Campaign
+      // families visually distinct without changing the underlying data.
+      html+=`<option class="event-group-header" disabled>— ${esc(group.name)} —</option>`;
       html+=group.rows.map(a=>`<option value="${esc(a.name)}">${esc(a.name)} — ${esc(a.difficulty)}</option>`).join('');
     }
   }else{
     list=getAdventureList(cat);
     html+=list.map(a=>`<option value="${esc(a.name)}">${esc(a.name)} — ${esc(a.difficulty)}</option>`).join('');
   }
-  html+=`<option value="${ADVENTURE_OTHER_VALUE}">Other</option>`;
   select.innerHTML=html;
   if(dl)dl.innerHTML=list.map(a=>`<option value="${esc(a.name)}"></option>`).join('');
   const current=list.find(a=>a.name===state.adventure);
-  if(state.adventure==='Other'){
-    select.value=ADVENTURE_OTHER_VALUE;
-    input.value='Other';
-    el('adventureDifficulty').textContent='—';
-  }else if(current){select.value=current.name;input.value=current.name;el('adventureDifficulty').textContent=current.difficulty}
+  if(current){select.value=current.name;input.value=current.name;el('adventureDifficulty').textContent=current.difficulty}
   else {select.value='';if(!state.adventure)input.value='';el('adventureDifficulty').textContent=state.adventureDifficulty||'—'}
   const status=el('adventureStatus');
   const label=cat;
   if(status)status.textContent=list.length?`${list.length} adventures · ${label}`:'No adventures found for this category';
 }
-function setAdventureCategory(cat){state.adventureCategory=cat;state.adventure='';state.adventureDifficulty='';renderAdventureOptions()}
+
+function setAdventureCategory(cat){
+  state.adventureCategory=cat;
+  state.adventure='';
+  state.adventureDifficulty='';
+  renderAdventureOptions();
+  const input=el('adventureInput');
+  if(input){input.value='';input.focus();}
+}
 function setAdventure(name){
   const clean=normalizeName(name);
   const select=el('adventureSelect'),input=el('adventureInput'),diff=el('adventureDifficulty');
+  if(state.adventureCategory==='Other'){
+    // In the Other category the user supplies the adventure title manually.
+    if(name===ADVENTURE_OTHER_VALUE){
+      state.adventure='';
+      state.adventureDifficulty='';
+      if(select)select.value=ADVENTURE_OTHER_VALUE;
+      if(input)input.value='';
+      if(diff)diff.textContent='—';
+      return;
+    }
+    state.adventure=clean;
+    state.adventureDifficulty='';
+    if(select)select.value=ADVENTURE_OTHER_VALUE;
+    if(input && input.value!==clean)input.value=clean;
+    if(diff)diff.textContent='—';
+    return;
+  }
   if(name===ADVENTURE_OTHER_VALUE || clean.toLocaleLowerCase()==='other'){
     state.adventure='Other';
     state.adventureDifficulty='';
@@ -2078,6 +2115,7 @@ function setAdventure(name){
   state.adventure=found?.name||clean;state.adventureDifficulty=found?.difficulty||'';
   if(select)select.value=found?.name||'';if(input)input.value=found?.name||clean;if(diff)diff.textContent=found?.difficulty||'—';
 }
+
 function initAdventureUI(){
   const cat=el('adventureCategory'),select=el('adventureSelect'),input=el('adventureInput');
   if(cat)cat.addEventListener('change',()=>setAdventureCategory(cat.value));
