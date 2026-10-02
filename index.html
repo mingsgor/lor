@@ -2522,7 +2522,6 @@ async function exportPNGManualFallback(){
     let H=0;
     H += 178;                 // header
     H += 64 + 12;             // Adventure (always shown)
-    H += 62 + 72 + 10;        // Region title + content (always shown)
     H += 18 + 52 + (selectedStars.length ? Math.ceil(selectedStars.length/3)*68 : 72);
     H += 18 + 52 + (selectedBonus.length ? Math.ceil(selectedBonus.length/5)*58 : 60);
     H += 18 + 52 + (selectedRelics.length ? exportTableRowsH(selectedRelics) : 72);
@@ -2610,6 +2609,26 @@ async function exportPNGManualFallback(){
       ctx.textBaseline='alphabetic';
     }
 
+    function getWrappedLines(ctx,text,maxWidth,maxLines=20){
+      const words=String(text||'').split(/\s+/);let line='',lines=[];
+      for(const word of words){
+        const test=line?line+' '+word:word;
+        if(ctx.measureText(test).width>maxWidth&&line){
+          lines.push(line);line=word;
+          if(lines.length>=maxLines)break;
+        }else line=test;
+      }
+      if(lines.length<maxLines&&line)lines.push(line);
+      return lines.length?lines:[''];
+    }
+    function wrapTextCentered(ctx,text,cx,y,maxWidth,lineHeight,maxLines=20){
+      const lines=getWrappedLines(ctx,text,maxWidth,maxLines);
+      ctx.textAlign='center';
+      lines.forEach((ln,i)=>ctx.fillText(ln,cx,y+i*lineHeight));
+      ctx.textAlign='left';
+      return lines.length*lineHeight;
+    }
+
     // Header: NO large champion artwork.
     const headerH=116;
     roundRect(ctx,14,14,W-28,headerH,18,'rgba(5,19,32,.86)','#24516d');
@@ -2681,30 +2700,16 @@ async function exportPNGManualFallback(){
       ctx.font='800 17px Arial';
       ctx.fillStyle='#eef5ff';
       const advNameX=P+160;
-      ctx.fillText(adventureName||'—',advNameX,y+39);
+      const advLabel=adventureName||'—';
+      ctx.fillText(advLabel,advNameX,y+39);
+      // Keep the adventure star count close to the adventure name instead of
+      // pushing it all the way to the right edge.
+      const advNameWidth=ctx.measureText(advLabel).width;
       ctx.font='800 13px Arial';
       ctx.fillStyle='#f3c54e';
-      ctx.textAlign='right';
-      ctx.fillText(state.adventureDifficulty||'—',P+innerW-18,y+39);
       ctx.textAlign='left';
+      ctx.fillText(state.adventureDifficulty||'—',advNameX+advNameWidth+18,y+39);
       y+=adventureH+12;
-    }
-
-    // Region is a standalone export section so its title is always present.
-    posterSection('Region','');
-    {
-      const regionName=state.region||'—';
-      const region=DATA.regions.find(r=>r.name===state.region);
-      const regionH=72;
-      posterRow(P,y,innerW,regionH);
-      if(region?.img){
-        const img=await safeImage(region.img);
-        if(img)ctx.drawImage(img,P+18,y+9,54,54);
-      }
-      ctx.font='800 20px Arial';
-      ctx.fillStyle='#eef5ff';
-      ctx.fillText(regionName,P+88,y+44);
-      y+=regionH+10;
     }
 
     async function drawPowerTable(items){
@@ -2734,7 +2739,9 @@ async function exportPNGManualFallback(){
         ctx.font=orderLabel==='First Power'?'800 15px Arial':'800 16px Arial';
         ctx.fillStyle='#9eb4c8';
         ctx.textAlign='center';
-        ctx.fillText(orderLabel,P+cols[0]/2,y+rowH/2+6);
+        ctx.textBaseline='middle';
+        ctx.fillText(orderLabel,P+cols[0]/2,y+rowH/2);
+        ctx.textBaseline='alphabetic';
         ctx.textAlign='left';
 
         const img=await safeImage(item.icon);
@@ -2746,18 +2753,26 @@ async function exportPNGManualFallback(){
 
         ctx.font='800 16px Arial';
         ctx.fillStyle='#eef5ff';
-        wrapText(ctx,item.name||'',P+cols[0]+cols[1]+12,y+27,cols[2]-24,20,3);
+        const nameX=P+cols[0]+cols[1]+cols[2]/2;
+        const nameLines=getWrappedLines(ctx,item.name||'',cols[2]-24,3);
+        const nameStart=y+rowH/2-(nameLines.length*20)/2+16;
+        wrapTextCentered(ctx,item.name||'',nameX,nameStart,cols[2]-24,20,3);
 
         const rarity=String(item.rarity||'').trim();
         const rarityColor=/legendary/i.test(rarity)?'#f39c4a':/epic/i.test(rarity)?'#c084fc':/rare/i.test(rarity)?'#8fb6ff':'#8ed36f';
         ctx.font='800 11px Arial';
         ctx.fillStyle=rarityColor;
-        wrapText(ctx,rarity.toUpperCase(),P+cols[0]+cols[1]+cols[2]+12,y+27,cols[3]-24,16,2);
+        const rarityX=P+cols[0]+cols[1]+cols[2]+cols[3]/2;
+        const rarityLines=getWrappedLines(ctx,rarity.toUpperCase(),cols[3]-24,2);
+        const rarityStart=y+rowH/2-(rarityLines.length*16)/2+12;
+        wrapTextCentered(ctx,rarity.toUpperCase(),rarityX,rarityStart,cols[3]-24,16,2);
 
-        // Larger, more readable description in the 5th column.
+        // Larger, more readable description in the 5th column, centered.
         ctx.font='20px Arial';
         ctx.fillStyle='#eef5ff';
-        wrapText(ctx,item.desc||'',descX,y+32,descW,28,descLines);
+        const descLinesActual=getWrappedLines(ctx,item.desc||'',descW,descLines);
+        const descStart=y+rowH/2-(descLinesActual.length*28)/2+21;
+        wrapTextCentered(ctx,item.desc||'',descX+descW/2,descStart,descW,28,descLines);
         y+=rowH+10;
       }
     }
@@ -2835,24 +2850,32 @@ async function exportPNGManualFallback(){
         line(x+cols[0]+cols[1]+cols[2],y+8,x+cols[0]+cols[1]+cols[2],y+rowH-8,'#214966',1);
         line(x+cols[0]+cols[1]+cols[2]+cols[3],y+8,x+cols[0]+cols[1]+cols[2]+cols[3],y+rowH-8,'#214966',1);
 
-        ctx.font='800 18px Arial';ctx.fillStyle='#9eb4c8';ctx.textAlign='center';
-        ctx.fillText(String(ri+1),P+cols[0]/2,y+rowH/2+6);ctx.textAlign='left';
+        ctx.font='800 18px Arial';ctx.fillStyle='#9eb4c8';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(String(ri+1),P+cols[0]/2,y+rowH/2);ctx.textBaseline='alphabetic';ctx.textAlign='left';
 
         const img=await safeImage(item.icon);
         const is=54, ix=P+cols[0]+(cols[1]-is)/2, iy=y+(rowH-is)/2;
         if(img)ctx.drawImage(img,ix,iy,is,is); else drawPosterIcon('✦',ix+5,iy+5,44);
 
         ctx.font='800 16px Arial';ctx.fillStyle='#eef5ff';
-        wrapText(ctx,item.name,P+cols[0]+cols[1]+12,y+27,cols[2]-24,20,3);
+        const nameX=P+cols[0]+cols[1]+cols[2]/2;
+        const nameLines=getWrappedLines(ctx,item.name||'',cols[2]-24,3);
+        const nameStart=y+rowH/2-(nameLines.length*20)/2+16;
+        wrapTextCentered(ctx,item.name||'',nameX,nameStart,cols[2]-24,20,3);
 
         const cat=relicCategory(item);
         const catColor=cat==='Commons'?'#8ed36f':cat==='Rares'?'#8fb6ff':/signature/i.test(cat)?'#c084fc':'#c084fc';
         ctx.font='800 11px Arial';ctx.fillStyle=catColor;
-        wrapText(ctx,String(cat||'').toUpperCase(),P+cols[0]+cols[1]+cols[2]+12,y+27,cols[3]-24,16,2);
+        const catX=P+cols[0]+cols[1]+cols[2]+cols[3]/2;
+        const catLines=getWrappedLines(ctx,String(cat||'').toUpperCase(),cols[3]-24,2);
+        const catStart=y+rowH/2-(catLines.length*16)/2+12;
+        wrapTextCentered(ctx,String(cat||'').toUpperCase(),catX,catStart,cols[3]-24,16,2);
 
-        // Larger, more readable description in the 5th column.
+        // Larger, more readable description in the 5th column, centered.
         ctx.font='20px Arial';ctx.fillStyle='#eef5ff';
-        wrapText(ctx,item.desc||'',descX,y+32,descW,28,descLines);
+        const descLinesActual=getWrappedLines(ctx,item.desc||'',descW,descLines);
+        const descStart=y+rowH/2-(descLinesActual.length*28)/2+21;
+        wrapTextCentered(ctx,item.desc||'',descX+descW/2,descStart,descW,28,descLines);
         y+=rowH+10;
       }
     }
