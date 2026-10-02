@@ -1970,6 +1970,15 @@ function adventureIdentityKey(row){
   const stars=adventureStarsKey(row?.difficulty);
   return name&&stars?`${name}|${stars}`:'';
 }
+const WORLD_ADVENTURE_CUTOFF='The Noxian Grand General';
+const WORLD_ADVENTURE_BLOCKED_AFTER_CUTOFF=new Set([
+  'Whispers in the Fire','Annie Goes East','Strange Symphony','Song of Runeterra',
+  'Storm the Battlements','The Might of Noxus',"Garen's Tryst",'The Heart of a Warrior',
+  "The Buhru's Calling (Pt. 1)","The Buhru's Calling (Pt. 2)",'An Inspired Composition',
+  'The Meddlers, The Murder','The Loose Cannon (Pt. 1)','The Loose Cannon (Pt. 2)',
+  "The Dragon's Vengeance",'The Spirit Wanders',"A Mage's Burden (Pt. 1)","A Mage's Burden (Pt. 2)",'The Battle for Bilgewater'
+].map(x=>x.toLocaleLowerCase()));
+const ADVENTURE_OTHER_VALUE='__OTHER__';
 function getNonEventAdventureNames(){
   // "Same adventure" means SAME NAME + SAME STAR DIFFICULTY.
   // A same-named Event adventure at a different star level must remain visible.
@@ -2013,7 +2022,15 @@ function getEventAdventureGroups(){
 }
 function getAdventureList(category){
   if(category==='Event Campaigns')return getEventAdventureGroups().flatMap(g=>g.rows);
-  return adventureRowsHaveStars(DATA.adventures?.[category]);
+  let rows=adventureRowsHaveStars(DATA.adventures?.[category]);
+  // World Adventures are intentionally frozen at The Noxian Grand General.
+  // Do not surface later/new Wiki additions unless a future instruction changes this.
+  if(category==='World Adventures'){
+    const cutoff=rows.findIndex(r=>normalizeName(r?.name).toLocaleLowerCase()===WORLD_ADVENTURE_CUTOFF.toLocaleLowerCase());
+    if(cutoff>=0)rows=rows.slice(0,cutoff+1);
+    rows=rows.filter(r=>!WORLD_ADVENTURE_BLOCKED_AFTER_CUTOFF.has(normalizeName(r?.name).toLocaleLowerCase()));
+  }
+  return rows;
 }
 function renderAdventureOptions(){
   const cat=state.adventureCategory||'World Adventures',select=el('adventureSelect'),input=el('adventureInput'),dl=el('adventureList');
@@ -2030,10 +2047,15 @@ function renderAdventureOptions(){
     list=getAdventureList(cat);
     html+=list.map(a=>`<option value="${esc(a.name)}">${esc(a.name)} — ${esc(a.difficulty)}</option>`).join('');
   }
+  html+=`<option value="${ADVENTURE_OTHER_VALUE}">Other</option>`;
   select.innerHTML=html;
   if(dl)dl.innerHTML=list.map(a=>`<option value="${esc(a.name)}"></option>`).join('');
   const current=list.find(a=>a.name===state.adventure);
-  if(current){select.value=current.name;input.value=current.name;el('adventureDifficulty').textContent=current.difficulty}
+  if(state.adventure==='Other'){
+    select.value=ADVENTURE_OTHER_VALUE;
+    input.value='Other';
+    el('adventureDifficulty').textContent='—';
+  }else if(current){select.value=current.name;input.value=current.name;el('adventureDifficulty').textContent=current.difficulty}
   else {select.value='';if(!state.adventure)input.value='';el('adventureDifficulty').textContent=state.adventureDifficulty||'—'}
   const status=el('adventureStatus');
   const label=cat;
@@ -2041,10 +2063,19 @@ function renderAdventureOptions(){
 }
 function setAdventureCategory(cat){state.adventureCategory=cat;state.adventure='';state.adventureDifficulty='';renderAdventureOptions()}
 function setAdventure(name){
-  const list=getAdventureList(state.adventureCategory),clean=normalizeName(name);
+  const clean=normalizeName(name);
+  const select=el('adventureSelect'),input=el('adventureInput'),diff=el('adventureDifficulty');
+  if(name===ADVENTURE_OTHER_VALUE || clean.toLocaleLowerCase()==='other'){
+    state.adventure='Other';
+    state.adventureDifficulty='';
+    if(select)select.value=ADVENTURE_OTHER_VALUE;
+    if(input)input.value='Other';
+    if(diff)diff.textContent='—';
+    return;
+  }
+  const list=getAdventureList(state.adventureCategory);
   const found=list.find(a=>a.name.toLocaleLowerCase()===clean.toLocaleLowerCase())||list.find(a=>a.name.toLocaleLowerCase().startsWith(clean.toLocaleLowerCase()));
   state.adventure=found?.name||clean;state.adventureDifficulty=found?.difficulty||'';
-  const select=el('adventureSelect'),input=el('adventureInput'),diff=el('adventureDifficulty');
   if(select)select.value=found?.name||'';if(input)input.value=found?.name||clean;if(diff)diff.textContent=found?.difficulty||'—';
 }
 function initAdventureUI(){
@@ -2103,14 +2134,16 @@ function toggleSet(type,index,checked){
   if(type==='stars')renderStars();else renderBonus();
 }
 function toggleAllSet(type){const source=type==='stars'?DATA.stars:DATA.bonus;const target=type==='stars'?state.stars:state.bonus;if(!source.length)return;const allSelected=source.every((_,i)=>target.has(i));if(allSelected)target.clear();else source.forEach((_,i)=>target.add(i));if(type==='stars')renderStars();else renderBonus()}
+let relicDragIndex=-1;
 function renderRelics(){
   el('relicCount').textContent=`${state.relics.length} / 3`;
   const cards=state.relics.map((idx,n)=>{
     const r=DATA.relics[idx];
+    if(!r)return '';
     const cat=relicCategory(r);
     const catClass=relicCategoryClass(r);
-    return `<div class="slot relic-option ${catClass}">
-      <div class="slot-index">${n+1}</div>
+    return `<div class="slot relic-option ${catClass}" draggable="true" data-relic-slot="${n}" ondragstart="startRelicDrag(${n},event)" ondragover="allowRelicDrop(event)" ondrop="dropRelic(${n},event)" ondragend="endRelicDrag()">
+      <div class="slot-index" title="Drag to reorder">${n+1}</div>
       <div class="relic-icon-cell"><div class="icon"><img src="${esc(r.icon)}" alt="${esc(r.name)}" loading="lazy" onerror="this.style.display='none'"></div></div>
       <div class="relic-name-cell"><div class="name">${esc(r.name)}</div></div>
       <div class="relic-rarity-cell">${esc(cat)}</div>
@@ -2123,6 +2156,10 @@ function renderRelics(){
     : '<button class="add" disabled>3 / 3 Relic Slots Full</button>';
   el('relicSlots').innerHTML=(cards?`<div class="slot-grid">${cards}</div>`:'')+add;
 }
+function startRelicDrag(n,e){relicDragIndex=n;e?.dataTransfer?.setData('text/plain',String(n));if(e?.dataTransfer)e.dataTransfer.effectAllowed='move'}
+function allowRelicDrop(e){e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move'}
+function dropRelic(n,e){e.preventDefault();const from=relicDragIndex>=0?relicDragIndex:Number(e.dataTransfer?.getData('text/plain'));if(!Number.isInteger(from)||from<0||from>=state.relics.length||from===n){endRelicDrag();return}const [item]=state.relics.splice(from,1);state.relics.splice(n,0,item);endRelicDrag();renderRelics()}
+function endRelicDrag(){relicDragIndex=-1}
 function removeRelic(n){state.relics.splice(n,1);renderRelics()}
 function powerOrderLabel(n,total){return n===total-1?'First Power':String(total-n)}
 function renderPowers(){
@@ -2186,7 +2223,7 @@ function renderModalOptions(){
     return `<button class="option relic-option ${cls}" onclick="addSelected(${o.i})"><div class="relic-index-cell">${row+1}</div><div class="relic-icon-cell"><div class="icon"><img src="${esc(o.x.icon)}" alt="${esc(o.x.name)}" loading="lazy" onerror="this.style.display='none'"></div></div><div class="relic-name-cell"><div class="name">${esc(o.x.name)}</div></div><div class="relic-rarity-cell">${esc(cat||'')}</div><div class="relic-desc-cell">${esc(o.x.desc||'')}</div></button>`;
   }).join('');
 }
-function addSelected(i){if(modalType==='relic'){if(state.relics.length<3)state.relics.push(i);renderRelics()}else{state.powers.push(i);renderPowers()}renderSummary();closeModal()}
+function addSelected(i){if(modalType==='relic'){if(state.relics.length>=3)return;state.relics.push(i);renderRelics();renderModalOptions();renderSummary();return}else{state.powers.push(i);renderPowers();renderSummary();closeModal()}}
 function renderSummary(){}
 function renderAll(){renderAdventureOptions();renderRegions();renderChampions();renderStars();renderBonus();renderRelics();renderPowers();el('champLabel').textContent=state.champion;}
 async function resetBuild(){state={region:'Bandle City',champion:'',champSearch:'',adventureCategory:'World Adventures',adventure:'',adventureDifficulty:'',stars:new Set(),bonus:new Set(),relics:[],powers:[],notes:''};relicFilter='ALL';el('playerNotes').value='';renderAll();try{await refreshSelectedChampionFromWiki()}catch(e){};window.scrollTo({top:0,left:0,behavior:'smooth'});setTimeout(()=>window.scrollTo(0,0),450)}
@@ -2360,11 +2397,15 @@ async function exportPNGManualFallback(){
       .map(i=>DATA.stars[i])
       .filter(Boolean)
       .sort((a,b)=>{
-        const av=(a?.kind==='rune') ? Number.POSITIVE_INFINITY : Number(a?.star ?? a?.starLevel ?? 0);
-        const bv=(b?.kind==='rune') ? Number.POSITIVE_INFINITY : Number(b?.star ?? b?.starLevel ?? 0);
-        const an=Number.isFinite(av)?av:Number.POSITIVE_INFINITY;
-        const bn=Number.isFinite(bv)?bv:Number.POSITIVE_INFINITY;
-        return an-bn;
+        const starValue=x=>{
+          if(x?.kind==='rune')return Number.POSITIVE_INFINITY;
+          const explicit=Number(x?.starLevel);
+          if(Number.isFinite(explicit))return explicit;
+          const raw=String(x?.star||'');
+          const count=(raw.match(/★/g)||[]).length;
+          return count||Number(x?.star)||0;
+        };
+        return starValue(a)-starValue(b);
       });
 
     // IMPORTANT: Export the values currently shown/checked in the editor UI.
@@ -2411,12 +2452,13 @@ async function exportPNGManualFallback(){
     },0);
     let H=0;
     H += 178;                 // header
-    if(adventureName)         H += 64 + 12;
-    if(selectedStars.length)  H += 18 + 52 + Math.ceil(selectedStars.length/3)*68;
-    if(selectedBonus.length)  H += 18 + 52 + Math.ceil(selectedBonus.length/5)*58;
-    if(selectedRelics.length) H += 18 + 52 + exportTableRowsH(selectedRelics);
-    if(selectedPowers.length) H += 18 + 52 + exportTableRowsH(selectedPowers);
-    if(noteText)              H += 18 + 52 + noteH;
+    H += 64 + 12;             // Adventure (always shown)
+    H += 62 + 72 + 10;        // Region title + content (always shown)
+    H += 18 + 52 + (selectedStars.length ? Math.ceil(selectedStars.length/3)*68 : 72);
+    H += 18 + 52 + (selectedBonus.length ? Math.ceil(selectedBonus.length/5)*58 : 60);
+    H += 18 + 52 + (selectedRelics.length ? exportTableRowsH(selectedRelics) : 72);
+    H += 18 + 52 + (selectedPowers.length ? exportTableRowsH(selectedPowers) : 72);
+    H += 18 + 52 + (noteText ? noteH : 72);
     H += 42;                  // footer
     H=Math.ceil(H);
     // Keep the poster at the same 2048px-wide output format on desktop.
@@ -2512,7 +2554,7 @@ async function exportPNGManualFallback(){
 
     ctx.font='800 40px Arial';
     ctx.fillStyle='#f3f7fb';
-    ctx.fillText('LoR PoC Build',P,90);
+    ctx.fillText('LoR PoC Build',P,97);
 
     // Selected champion: move name + circular icon to the right side of the header.
     const cImg=await safeImage(champ?.img);
@@ -2558,8 +2600,8 @@ async function exportPNGManualFallback(){
     // Region and loadout-count identity row intentionally omitted from the export.
     y=140;
 
-    if(adventureName){
-      // Compact one-line Adventure row: title + adventure name + difficulty.
+    {
+      // Always keep the Adventure title in the export, even when no adventure is selected.
       const adventureH=64;
       posterRow(P,y,innerW,adventureH,'rgba(9,30,49,.88)');
       ctx.fillStyle='#f3c54e';
@@ -2570,7 +2612,7 @@ async function exportPNGManualFallback(){
       ctx.font='800 17px Arial';
       ctx.fillStyle='#eef5ff';
       const advNameX=P+160;
-      ctx.fillText(adventureName,advNameX,y+39);
+      ctx.fillText(adventureName||'—',advNameX,y+39);
       ctx.font='800 13px Arial';
       ctx.fillStyle='#f3c54e';
       ctx.textAlign='right';
@@ -2579,9 +2621,31 @@ async function exportPNGManualFallback(){
       y+=adventureH+12;
     }
 
+    // Region is a standalone export section so its title is always present.
+    posterSection('Region','');
+    {
+      const regionName=state.region||'—';
+      const region=DATA.regions.find(r=>r.name===state.region);
+      const regionH=72;
+      posterRow(P,y,innerW,regionH);
+      if(region?.img){
+        const img=await safeImage(region.img);
+        if(img)ctx.drawImage(img,P+18,y+9,54,54);
+      }
+      ctx.font='800 20px Arial';
+      ctx.fillStyle='#eef5ff';
+      ctx.fillText(regionName,P+88,y+44);
+      y+=regionH+10;
+    }
+
     async function drawPowerTable(items){
-      if(!items.length)return;
       posterSection('Powers','');
+      if(!items.length){
+        posterRow(P,y,innerW,62);
+        ctx.font='16px Arial';ctx.fillStyle='#9eb4c8';ctx.fillText('—',P+18,y+38);
+        y+=72;
+        return;
+      }
       // Export table: Order / Icon / Name / Rarity / Description.
       const displayItems=[...items].reverse();
       const cols=[126,82,220,125];
@@ -2629,8 +2693,8 @@ async function exportPNGManualFallback(){
       }
     }
 
+    posterSection('Star Powers','');
     if(selectedStars.length){
-      posterSection('Star Powers','');
       const starCols=3;
       const starGap=10;
       const starW=(innerW-starGap*(starCols-1))/starCols;
@@ -2650,10 +2714,14 @@ async function exportPNGManualFallback(){
         });
         y+=68;
       }
+    }else{
+      posterRow(P,y,innerW,62);
+      ctx.font='16px Arial';ctx.fillStyle='#9eb4c8';ctx.fillText('—',P+18,y+38);
+      y+=72;
     }
 
+    posterSection('Bonus Stars','');
     if(selectedBonus.length){
-      posterSection('Bonus Stars','');
       const bonusCols=5;
       const bonusGap=10;
       const bonusW=(innerW-bonusGap*(bonusCols-1))/bonusCols;
@@ -2668,11 +2736,20 @@ async function exportPNGManualFallback(){
         });
         y+=60;
       }
+    }else{
+      posterRow(P,y,innerW,50);
+      ctx.font='16px Arial';ctx.fillStyle='#9eb4c8';ctx.fillText('—',P+18,y+32);
+      y+=60;
     }
 
     async function drawRelicTable(items){
-      if(!items.length)return;
       posterSection('Relics','');
+      if(!items.length){
+        posterRow(P,y,innerW,62);
+        ctx.font='16px Arial';ctx.fillStyle='#9eb4c8';ctx.fillText('—',P+18,y+38);
+        y+=72;
+        return;
+      }
       // Export table: Order / Icon / Name / Rarity / Description.
       const cols=[54,82,220,125];
       const descX=P+cols[0]+cols[1]+cols[2]+cols[3]+12;
@@ -2714,9 +2791,8 @@ async function exportPNGManualFallback(){
     await drawRelicTable(selectedRelics);
     await drawPowerTable(selectedPowers);
 
+    posterSection('Player Notes','');
     if(noteText){
-      posterSection('Player Notes','');
-
       posterRow(P,y,innerW,noteH);
 
       ctx.font='14px Arial';
@@ -2732,6 +2808,10 @@ async function exportPNGManualFallback(){
       );
 
       y+=noteH+10;
+    }else{
+      posterRow(P,y,innerW,62);
+      ctx.font='16px Arial';ctx.fillStyle='#9eb4c8';ctx.fillText('—',P+18,y+38);
+      y+=72;
     }
 
     // Footer.
