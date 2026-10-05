@@ -3384,12 +3384,12 @@ async function exportPNGManualFallback(){
     let H=0;
     H += 178;                 // header
     H += 64 + 12;             // Adventure (always shown)
-    H += 18 + 52 + (selectedStars.length ? Math.ceil(selectedStars.length/3)*68 : 72);
+    H += 18 + 52 + (selectedStars.length ? Math.ceil(selectedStars.length/4)*68 : 72);
     H += 18 + 52 + (selectedBonus.length ? Math.ceil(selectedBonus.length/5)*58 : 60);
     H += 18 + 52 + (selectedRelics.length ? exportTableRowsH(selectedRelics) : 72);
     H += 18 + 52 + (selectedPowers.length ? exportTableRowsH(selectedPowers) : 72);
     H += 18 + 52 + (noteText ? noteH : 72);
-    H += 42;                  // footer
+    H += 70;                  // footer + credit
     H=Math.ceil(H);
     // Keep the poster at the same 2048px-wide output format on desktop.
     // Only reduce scale when the browser's canvas height limit would be exceeded.
@@ -3644,7 +3644,7 @@ async function exportPNGManualFallback(){
     showExportProgress(38,'Rendering Star Powers...');
     posterSection('Star Powers','');
     if(selectedStars.length){
-      const starCols=3;
+      const starCols=4;
       const starGap=10;
       const starW=(innerW-starGap*(starCols-1))/starCols;
       for(let row=0;row<Math.ceil(selectedStars.length/starCols);row++){
@@ -3783,6 +3783,14 @@ async function exportPNGManualFallback(){
     ctx.fillText('LoR PoC Build',W/2,y+5);
     line(P+695,y,P+835,y,'#9b7a25',1);
     ctx.textAlign='left';
+
+    // Creator credit at the very bottom of the exported image.
+    ctx.font='700 12px Arial';
+    ctx.fillStyle='#9eb4c8';
+    ctx.textAlign='center';
+    ctx.fillText('made by penguinsgor',W/2,y+32);
+    ctx.textAlign='left';
+    y+=42;
 
     // Crop exactly to the content that was actually drawn.
     const finalH=Math.max(1,Math.ceil(y+28)*scale);
