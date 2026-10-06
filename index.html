@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content, viewport-fit=cover" />
-<title>LoR PoC Build Builder v147</title>
+<title>LoR PoC Build Builder v149</title>
 <style>
   :root{--bg:#07111d;--panel:#0d1b2b;--panel2:#12243a;--line:#234361;--text:#eef5ff;--muted:#93abc2;--accent:#f3c54e;--cyan:#63d8ff;--danger:#ff7777;--glow:rgba(74,190,255,.14)}
   *{box-sizing:border-box}
@@ -13,7 +13,7 @@
   .brand-mark{font-size:10px;letter-spacing:2px;color:var(--accent);font-weight:850;margin-bottom:4px}.brand-mark span{padding:0 7px;color:#d9f7ff}
   h1{font-size:25px;margin:0 0 4px;letter-spacing:.2px}.sub{color:var(--muted);font-size:12px}
   section{margin-top:15px;background:linear-gradient(145deg,rgba(13,31,48,.96),rgba(8,20,34,.96));border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.22)}
-  .title{padding:11px 14px;background:linear-gradient(90deg,rgba(34,67,94,.72),rgba(22,40,59,.72));border-bottom:1px solid rgba(72,130,166,.35);display:flex;align-items:center;justify-content:space-between;font-weight:800;letter-spacing:.1px}.title small{font-weight:600;color:var(--muted)}.champ-title-tools{display:flex;align-items:center;gap:9px;margin-left:auto}.champ-search-wrap{position:relative;display:flex;align-items:center}.champ-search{width:230px;height:32px;padding:5px 34px 5px 11px;border-radius:9px;border:1px solid #315473;background:#0a1827;color:var(--text);font:600 13px Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;outline:none;transition:.15s}.champ-search::placeholder{color:#718ba5}.champ-search:focus{border-color:#6a8ca9;box-shadow:0 0 0 2px rgba(99,216,255,.08)}.champ-search-clear{position:absolute;right:2px;top:3px;width:26px;height:26px;padding:0;border:0;background:transparent;color:#ff7777;border-radius:6px;font-size:20px;line-height:20px;cursor:pointer;display:none;transform:none!important}.champ-search-clear:hover{color:#ffb0b0;background:rgba(127,57,64,.18);border-color:transparent;transform:none!important}.champ-title-tools .champ-selected-label{font-weight:600;color:var(--muted);white-space:nowrap}.champ-search-empty{grid-column:1/-1;padding:24px 10px;text-align:center;color:var(--muted);font-size:13px}
+  .title{padding:11px 14px 11px 31px;background:linear-gradient(90deg,rgba(34,67,94,.72),rgba(22,40,59,.72));border-bottom:1px solid rgba(72,130,166,.35);display:flex;align-items:center;justify-content:space-between;font-weight:800;letter-spacing:.1px;position:relative}.title::before{content:"";position:absolute;left:14px;top:50%;transform:translateY(-50%);width:5px;height:28px;border-radius:2px;background:#f3c54e;box-shadow:0 0 8px rgba(243,197,78,.16)}.title small{font-weight:600;color:var(--muted)}.champ-title-tools{display:flex;align-items:center;gap:9px;margin-left:auto}.champ-search-wrap{position:relative;display:flex;align-items:center}.champ-search{width:230px;height:32px;padding:5px 34px 5px 11px;border-radius:9px;border:1px solid #315473;background:#0a1827;color:var(--text);font:600 13px Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;outline:none;transition:.15s}.champ-search::placeholder{color:#718ba5}.champ-search:focus{border-color:#6a8ca9;box-shadow:0 0 0 2px rgba(99,216,255,.08)}.champ-search-clear{position:absolute;right:2px;top:3px;width:26px;height:26px;padding:0;border:0;background:transparent;color:#ff7777;border-radius:6px;font-size:20px;line-height:20px;cursor:pointer;display:none;transform:none!important}.champ-search-clear:hover{color:#ffb0b0;background:rgba(127,57,64,.18);border-color:transparent;transform:none!important}.champ-title-tools .champ-selected-label{font-weight:600;color:var(--muted);white-space:nowrap}.champ-search-empty{grid-column:1/-1;padding:24px 10px;text-align:center;color:var(--muted);font-size:13px}
   .body{padding:12px}.chips,.grid{display:flex;flex-wrap:wrap;gap:8px}.build-stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}.build-stat-field{display:grid;grid-template-columns:1fr 1.25fr;align-items:center;gap:8px;min-width:0}.build-stat-field>span{font-size:12px;font-weight:850;color:#dcecff}.build-stat-field input{width:100%;height:34px;box-sizing:border-box;padding:6px 10px;border-radius:9px;border:1px solid #315473;background:#0a1827;color:var(--text);font:600 13px Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;outline:none}.build-stat-field input:focus{border-color:#6a8ca9;box-shadow:0 0 0 2px rgba(99,216,255,.08)}
 .adventure-tools{display:grid;grid-template-columns:180px minmax(170px,1fr) minmax(260px,1.4fr);gap:8px;width:min(780px,100%);margin-left:auto}.adventure-select option.event-group-header{color:#e05252;font-weight:800;background:#111720;}.adventure-select,.adventure-input{height:34px;padding:6px 10px;border-radius:9px;border:1px solid #315473;background:#0a1827;color:var(--text);font:600 13px Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;outline:none}.adventure-select:focus,.adventure-input:focus{border-color:#6a8ca9;box-shadow:0 0 0 2px rgba(99,216,255,.08)}.adventure-row{display:grid;grid-template-columns:1fr 150px;gap:8px;align-items:center}.adventure-difficulty{height:34px;display:flex;align-items:center;justify-content:center;border:1px solid #315473;border-radius:9px;background:#0a1827;color:var(--accent);font-size:12px;font-weight:800}.adventure-empty{color:var(--muted);font-size:12px}.region-grid{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:4px;overflow:visible;padding:2px 2px 6px}.region-card{flex:1 1 0;width:auto;max-width:54px;min-width:46px;height:54px;min-height:54px;padding:4px;display:grid;place-items:center;text-align:center;position:relative}.region-card .region-img{width:46px;height:46px;object-fit:contain;border-radius:50%;background:#081421;border:2px solid #35506a;display:block;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}.region-card .region-text{position:absolute;left:50%;top:calc(100% + 6px);transform:translateX(-50%);z-index:30;white-space:nowrap;font-size:11px;font-weight:750;color:#eef4fb;background:#081421;border:1px solid #46627c;border-radius:6px;padding:4px 7px;box-shadow:0 6px 18px rgba(0,0,0,.35);opacity:0;pointer-events:none;transition:opacity .12s ease,transform .12s ease}.region-card:hover .region-text,.region-card:focus-visible .region-text{opacity:1;transform:translateX(-50%) translateY(-2px)}.region-card:hover .region-img,.region-card:focus-visible .region-img{transform:scale(1.06);border-color:#6f91b2}.region-card.region-all .region-all-icon{width:46px;height:46px;display:grid;place-items:center;border-radius:50%;background:#081421;border:2px solid #35506a;color:var(--accent);font-size:22px;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}.region-card:hover .region-all-icon,.region-card:focus-visible .region-all-icon{transform:scale(1.06);border-color:#6f91b2}.region-card.active .region-img,.region-card.active .region-all-icon{border-color:var(--accent);box-shadow:0 0 0 2px rgba(242,201,76,.18),0 0 16px rgba(242,201,76,.16)}.region-card.active{background:transparent;border-color:transparent;box-shadow:none}.region-card:focus{outline:none}
   button,.selectlike{font:inherit;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 12px;cursor:pointer;transition:.15s}button:hover{border-color:#6b8aa5;transform:translateY(-1px)}button.active{border-color:var(--accent);box-shadow:0 0 0 1px rgba(242,201,76,.25) inset;background:#182e3a}button.danger{color:#ff9a9a;border-color:#633b3b}
@@ -3421,7 +3421,26 @@ function addSelected(i){
 }
 function renderSummary(){}
 function renderAll(){renderAdventureOptions();syncBuildStatsInputs();renderRegions();renderChampions();renderStars();renderBonus();renderRunes();renderRelics();renderPowers();el('champLabel').textContent=state.champion;}
-async function resetBuild(){state={region:'Bandle City',champion:'',champSearch:'',adventureCategory:'World Adventures',adventure:'',adventureDifficulty:'',level:'',health:'',regen:'',stars:new Set(),bonus:new Set(),relics:[],rune:-1,runeKey:'',powers:[],notes:''};relicFilter='ALL';powerFilter='ALL';runeFilter='ALL';el('playerNotes').value='';renderAll();try{await refreshSelectedChampionFromWiki()}catch(e){};window.scrollTo({top:0,left:0,behavior:'smooth'});setTimeout(()=>window.scrollTo(0,0),450)}
+function resetBuild(){
+  // Return every editable/selected value to the exact initial state.
+  state={region:'Bandle City',champion:'',champSearch:'',adventureCategory:'World Adventures',adventure:'',adventureDifficulty:'',level:'',health:'',regen:'',stars:new Set(),bonus:new Set(),relics:[],rune:-1,runeKey:'',powers:[],notes:''};
+  relicFilter='ALL';powerFilter='ALL';runeFilter='ALL';
+  if(el('playerNotes'))el('playerNotes').value='';
+  if(el('champSearch'))el('champSearch').value='';
+  if(el('adventureInput'))el('adventureInput').value='';
+  if(el('adventureCategory'))el('adventureCategory').value='World Adventures';
+  if(el('adventureSelect'))el('adventureSelect').value='';
+  if(el('adventureDifficulty'))el('adventureDifficulty').textContent='—';
+  if(el('modalSearch'))el('modalSearch').value='';
+  updateModalSearchClear();
+  closeModal();
+  if(typeof closeImagePreview==='function')closeImagePreview();
+  clearExportProgress();
+  renderAll();
+  updateAdventureInputClear();
+  window.scrollTo({top:0,left:0,behavior:'smooth'});
+  setTimeout(()=>window.scrollTo(0,0),450);
+}
 
 let imagePreviewUrl='';
 let imagePreviewFilename='LoR_PoC_Build.png';
@@ -3598,6 +3617,14 @@ function showExportProgress(percent,message){
   box.className='export-status';
   box.style.display='block';
   box.innerHTML=`<div>${esc(message||'Preparing image...')}</div><div class="export-progress-wrap"><div class="export-progress-track"><div class="export-progress-fill" style="width:${p}%"></div></div><div class="export-progress-percent">${p}%</div></div>`;
+}
+function clearExportProgress(){
+  const box=el('exportStatus');
+  if(!box)return;
+  box.className='export-status';
+  box.style.display='none';
+  box.innerHTML='';
+  box.textContent='';
 }
 async function exportPNGManualFallback(){
   const btn=document.querySelector('.export-primary');
