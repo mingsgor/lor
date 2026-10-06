@@ -119,6 +119,7 @@
 .relic-limit-warning.show{display:block}
 .relic-max-badge{display:inline-block;margin-left:6px;padding:2px 5px;border-radius:5px;font-size:9px;font-weight:900;letter-spacing:.25px;color:#ffb6bb;border:1px solid rgba(255,139,145,.5);background:rgba(127,57,64,.14);vertical-align:middle;white-space:nowrap}
 .relic-selected-limit{display:block;margin-top:3px;font-size:9px;color:#ffb0b5;font-weight:850;line-height:1.2}
+.modal-relic-warning{display:none;margin:0 0 8px;padding:7px 10px;border:1px solid rgba(255,139,145,.7);border-radius:7px;background:rgba(127,57,64,.18);color:#ffb0b5;font-size:11px;font-weight:900;line-height:1.3}.modal-relic-warning.show{display:block}
 
 /* v142: every selector filter keeps its rarity color even when inactive. */
 .relic-filter-all,.power-filter-all,.rune-filter-all{color:#f3c54e;border-color:rgba(243,197,78,.65)}
@@ -135,7 +136,7 @@
   .image-preview-body{min-height:0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 }
 
-<!-- v144 targeted relic Max Amount limits -->
+<!-- v145: direct relic-limit warning + clean relic export names + faster PNG export -->
 </style>
 </head>
 <body>
@@ -188,7 +189,7 @@ Example:
 
 <div class="image-preview" id="imagePreview" aria-hidden="true"><div class="image-preview-box"><div class="image-preview-head"><div class="image-preview-title">Build Image</div><div class="image-preview-actions"><button type="button" onclick="downloadPreviewImage()">⬇ Save PNG</button><button type="button" onclick="sharePreviewImage()">↗ Share</button><button type="button" onclick="closeImagePreview()">× Close</button></div></div><div class="image-preview-body"><img id="imagePreviewImg" alt="LoR PoC build image preview"></div><div class="image-preview-hint">Desktop: click “Save PNG”. Mobile: use “Share” → Save Image, or press and hold the image.</div></div></div>
 
-<div class="modal" id="modal"><div class="modal-box"><div class="modal-head"><b id="modalTitle">Select</b><div id="modalFilters" class="relic-filters" aria-label="Relic rarity filter"></div><button class="modal-close" type="button" onclick="closeModal()" aria-label="Close">× <span>Close</span></button></div><input class="search" id="modalSearch" placeholder="Search name or description..." oninput="renderModalOptions()"><div id="modalSelectedRelics" class="modal-selected-relics" aria-label="Selected relics"></div><div id="modalSelectedRunes" class="modal-selected-runes" aria-label="Selected rune"></div><div id="modalSelectedPowers" class="modal-selected-powers" aria-label="Selected powers"></div><div id="modalOptions"></div></div></div>
+<div class="modal" id="modal"><div class="modal-box"><div class="modal-head"><b id="modalTitle">Select</b><div id="modalFilters" class="relic-filters" aria-label="Relic rarity filter"></div><button class="modal-close" type="button" onclick="closeModal()" aria-label="Close">× <span>Close</span></button></div><input class="search" id="modalSearch" placeholder="Search name or description..." oninput="renderModalOptions()"><div id="modalSelectedRelics" class="modal-selected-relics" aria-label="Selected relics"></div><div id="modalRelicWarning" class="modal-relic-warning" role="alert" aria-live="assertive"></div><div id="modalSelectedRunes" class="modal-selected-runes" aria-label="Selected rune"></div><div id="modalSelectedPowers" class="modal-selected-powers" aria-label="Selected powers"></div><div id="modalOptions"></div></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous"></script>
 <script>
@@ -3231,7 +3232,7 @@ function renderRelicFilters(){
 function setRelicFilter(filter){relicFilter=normalizeRelicFilter(filter)||'ALL';renderRelicFilters();renderModalOptions()}
 function setPowerFilter(filter){powerFilter=normalizePowerFilter(filter)||'ALL';renderRelicFilters();renderModalOptions()}
 function setRuneFilter(filter){runeFilter=String(filter||'ALL').trim().toLocaleUpperCase()||'ALL';renderRelicFilters();renderModalOptions()}
-function openModal(type){modalType=type;el('modalTitle').textContent=type==='relic'?'Select Relic':type==='rune'?'Select Rune':'Select Power';relicFilter='ALL';powerFilter='ALL';runeFilter='ALL';el('modalSearch').value='';renderRelicFilters();el('modal').classList.add('open');document.body.classList.add('modal-open');renderModalOptions();}
+function openModal(type){modalType=type;el('modalTitle').textContent=type==='relic'?'Select Relic':type==='rune'?'Select Rune':'Select Power';relicFilter='ALL';powerFilter='ALL';runeFilter='ALL';el('modalSearch').value='';const mw=el('modalRelicWarning');if(mw){mw.textContent='';mw.classList.remove('show')}renderRelicFilters();el('modal').classList.add('open');document.body.classList.add('modal-open');renderModalOptions();}
 function closeModal(){el('modal').classList.remove('open');modalType=null;renderRelicFilters();document.body.classList.remove('modal-open')}
 function renderSelectedRelics(){
   const box=el('modalSelectedRelics');
@@ -3352,17 +3353,23 @@ function renderModalOptions(){
     const max=relicMaxAmount(o.x); const used=relicSelectedCount(o.i); const badge=Number(o.x?.maxAmount)>0?`<span class="relic-max-badge">MAX ${max}</span>`:''; const blocked=used>=max || state.relics.length>=3; return `<button class="option relic-option ${cls}" onclick="addSelected(${o.i})" ${blocked?'aria-disabled="true"':''}><div class="relic-index-cell">${row+1}</div><div class="relic-icon-cell"><div class="icon"><img src="${esc(o.x.icon)}" alt="${esc(o.x.name)}" loading="lazy" onerror="this.style.display='none'"></div></div><div class="relic-name-cell"><div class="name">${esc(o.x.name)}${badge}</div></div><div class="relic-rarity-cell">${esc(cat||'')}</div><div class="relic-desc-cell">${esc(o.x.desc||'')}</div></button>`;
   }).join('');
 }
+function showRelicModalWarning(message){
+  const modalWarning=el('modalRelicWarning');
+  if(modalWarning){modalWarning.textContent=message||'';modalWarning.classList.toggle('show',!!message)}
+  const pageWarning=el('relicWarning');
+  if(pageWarning){pageWarning.textContent=message||'';pageWarning.classList.toggle('show',!!message)}
+}
 function addSelected(i){
   if(modalType==='relic'){
-    if(state.relics.length>=3)return;
+    if(state.relics.length>=3){showRelicModalWarning('⚠ You can select a maximum of 3 relics. Remove one relic before adding another.');return;}
     const r=DATA.relics?.[i];
     const max=relicMaxAmount(r);
     const used=relicSelectedCount(i);
     if(used>=max){
-      const warning=el('relicWarning');
-      if(warning){warning.textContent=`⚠ ${r?.name||'This relic'} can be used at most ${max} time${max===1?'':'s'} (Max Amount).`;warning.classList.add('show');}
+      showRelicModalWarning(`⚠ ${r?.name||'This relic'} can be used at most ${max} time${max===1?'':'s'}. You already selected ${used}/${max}.`);
       return;
     }
+    showRelicModalWarning('');
     state.relics.push(i);renderRelics();renderSelectedRelics();renderModalOptions();renderSummary();return
   }
   if(modalType==='rune'){state.rune=i;state.runeKey='';renderRunes();renderSelectedRunes();renderModalOptions();renderSummary();return}
@@ -3505,16 +3512,18 @@ function powerIconCandidates(p){
   }
   return out;
 }
+const exportImageCache=new Map();
 async function safeImage(src){
   const sources=Array.isArray(src)?src:[src];
   for(const source of sources){
     const value=String(source||'').trim();
     if(!value)continue;
+    if(exportImageCache.has(value)){const cached=exportImageCache.get(value);if(cached)return cached;continue;}
     const result=await new Promise(resolve=>{
       const img=new Image();
       let done=false;
       const finish=v=>{if(done)return;done=true;clearTimeout(timer);resolve(v)};
-      const timer=setTimeout(()=>finish(null),3500);
+      const timer=setTimeout(()=>finish(null),1400);
       img.crossOrigin='anonymous';
       img.onload=()=>{
         try{
@@ -3526,6 +3535,7 @@ async function safeImage(src){
       img.onerror=()=>finish(null);
       img.src=value;
     });
+    exportImageCache.set(value,result||null);
     if(result)return result;
   }
   return null;
@@ -3547,6 +3557,7 @@ function showExportProgress(percent,message){
 }
 async function exportPNGManualFallback(){
   const btn=document.querySelector('.export-primary');
+  exportImageCache.clear();
   const old=btn.textContent;
   btn.disabled=true;btn.textContent='⏳ Exporting...';
   showExportProgress(0,'Preparing build image...');
@@ -3561,7 +3572,8 @@ async function exportPNGManualFallback(){
 
     // Export is a poster, not a social-media crop:
     // fixed readable width + completely dynamic height based on selected content.
-    let scale=2;
+    // 1.5x keeps a crisp 1536px-wide PNG while reducing canvas pixels/PNG encoding time.
+    let scale=1.5;
     const W=1024;
     const P=28;
     const innerW=W-P*2;
@@ -3595,7 +3607,7 @@ async function exportPNGManualFallback(){
     })).filter(x=>Number.isFinite(x.number)&&x.number>0);
 
     const selectedRelics=[...document.querySelectorAll('#relicSlots .slot')].map(node=>({
-      name:String(node.querySelector('.relic-name-cell .name')?.textContent||'').trim(),
+      name:String(node.querySelector('.relic-name-cell .name')?.textContent||'').replace(/\s*Max\s+\d+\s*[·•]\s*\d+\s*\/\s*\d+\s*$/i,'').trim(),
       icon:node.querySelector('.relic-icon-cell img')?.getAttribute('src')||'',
       rarity:String(node.querySelector('.relic-rarity-cell')?.textContent||'').trim(),
       desc:String(node.querySelector('.relic-desc-cell')?.textContent||'').trim()
