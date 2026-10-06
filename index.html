@@ -114,6 +114,12 @@
 /* v133: fallback icon for Power export when the table thumbnail is missing/CORS-blocked. */
 .power-row .power-icon img.icon-loaded{display:block!important}
 
+/* v144: relic inventory Max Amount limits from the Google Sheet. */
+.relic-limit-warning{display:none;margin:0 0 8px;padding:8px 10px;border:1px solid rgba(255,139,145,.55);border-radius:8px;background:rgba(127,57,64,.13);color:#ffb0b5;font-size:12px;font-weight:800;line-height:1.35}
+.relic-limit-warning.show{display:block}
+.relic-max-badge{display:inline-block;margin-left:6px;padding:2px 5px;border-radius:5px;font-size:9px;font-weight:900;letter-spacing:.25px;color:#ffb6bb;border:1px solid rgba(255,139,145,.5);background:rgba(127,57,64,.14);vertical-align:middle;white-space:nowrap}
+.relic-selected-limit{display:block;margin-top:3px;font-size:9px;color:#ffb0b5;font-weight:850;line-height:1.2}
+
 /* v142: every selector filter keeps its rarity color even when inactive. */
 .relic-filter-all,.power-filter-all,.rune-filter-all{color:#f3c54e;border-color:rgba(243,197,78,.65)}
 .relic-filter.active.relic-filter-all,.relic-filter.active.power-filter-all,.relic-filter.active.rune-filter-all{
@@ -129,6 +135,7 @@
   .image-preview-body{min-height:0;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 }
 
+<!-- v144 targeted relic Max Amount limits -->
 </style>
 </head>
 <body>
@@ -151,9 +158,9 @@
 
 <section><div class="title"><span>Bonus Stars</span><div class="champ-title-tools"><small>tick to include</small><button class="select-all-btn" type="button" onclick="toggleAllSet('bonus')">Select All</button></div></div><div class="bonus-grid" id="bonus"></div></section>
 
-<section><div class="title"><span>Relics</span><div class="section-tools"><small id="relicCount">0 / 3</small><button class="select-all-btn danger-all-btn" type="button" onclick="clearRelics()">Delete All</button></div></div><div class="body" id="relicSlots"></div></section>
+<section><div class="title"><span>Relics</span><div class="section-tools"><small id="relicCount">0 / 3</small><button class="select-all-btn danger-all-btn" type="button" onclick="clearRelics()">Delete All</button></div></div><div class="body"><div id="relicWarning" class="relic-limit-warning" role="status" aria-live="polite"></div><div id="relicSlots"></div></div></section>
 
-<section id="runeSection" style="display:none"><div class="title"><span>Runes</span><div class="section-tools"><small id="runeCount">0 / 1</small><button class="select-all-btn danger-all-btn" type="button" onclick="clearRune()">Delete All</button></div></div><div class="body" id="runeSlots"></div></section>
+<section id="runeSection" style="display:none"><div class="title"><span>Runes</span><div class="section-tools"><small id="runeCount" style="display:none">0 / 1</small><button class="select-all-btn danger-all-btn" type="button" onclick="clearRune()">Delete All</button></div></div><div class="body" id="runeSlots"></div></section>
 
 <section><div class="title"><span>Powers</span><div class="section-tools"><small id="powerCount">0 selected</small><button class="select-all-btn danger-all-btn" type="button" onclick="clearPowers()">Delete All</button></div></div><div class="body" id="powerList"></div></section>
 
@@ -2670,6 +2677,84 @@ function mergeGoogleSheetPowersIntoData(powers){
   return {added,updated,total:powers.length};
 }
 
+const RELIC_LIMIT_SHEET_URL='https://docs.google.com/spreadsheets/d/1rkt74GNKSsZUZjaI4VCeaOCEDiGujc8R/export?format=csv&gid=1008093735';
+function parseSimpleCSV(text){
+  const rows=[];let row=[],cell='',quoted=false;
+  const src=String(text||'').replace(/^\uFEFF/,'');
+  for(let i=0;i<src.length;i++){
+    const ch=src[i],next=src[i+1];
+    if(ch==='"'){
+      if(quoted&&next==='"'){cell+='"';i++;}
+      else quoted=!quoted;
+    }else if(ch===','&&!quoted){row.push(cell);cell='';}
+    else if((ch==='\n'||ch==='\r')&&!quoted){
+      if(ch==='\r'&&next==='\n')i++;
+      row.push(cell);cell='';
+      if(row.some(v=>String(v).trim()!==''))rows.push(row);
+      row=[];
+    }else cell+=ch;
+  }
+  row.push(cell);if(row.some(v=>String(v).trim()!==''))rows.push(row);
+  return rows;
+}
+function parseRelicMaxAmount(v){
+  const m=String(v??'').trim().match(/\d+(?:\.\d+)?/); if(!m)return 0;
+  const n=Math.floor(Number(m[0])); return Number.isFinite(n)&&n>0?n:0;
+}
+async function loadRelicMaxAmountsFromSheet(){
+  let text='';let lastErr=null;
+  const urls=[
+    RELIC_LIMIT_SHEET_URL,
+    'https://docs.google.com/spreadsheets/d/1rkt74GNKSsZUZjaI4VCeaOCEDiGujc8R/gviz/tq?tqx=out:csv&gid=1008093735'
+  ];
+  for(const url of urls){
+    try{
+      const r=await fetch(url,{cache:'no-store'});
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      text=await r.text();
+      if(text&&text.length>20)break;
+    }catch(e){lastErr=e}
+  }
+  if(!text)throw lastErr||new Error('Relic Max Amount sheet unavailable');
+  const rows=parseSimpleCSV(text);
+  if(!rows.length)throw new Error('Relic Max Amount sheet is empty');
+  const header=rows[0].map(x=>normalizeName(x).toLocaleLowerCase());
+  const nameIndex=header.findIndex(x=>x==='name'||x.includes('relic'));
+  const maxIndex=header.findIndex(x=>x==='max amount'||x.includes('max amount'));
+  if(nameIndex<0||maxIndex<0)throw new Error('Relic Max Amount columns not found');
+  const limits=new Map();
+  for(const row of rows.slice(1)){
+    const name=normalizeName(row[nameIndex]||'').replace(/^LoR\s*:\s*/i,'').trim();
+    const max=parseRelicMaxAmount(row[maxIndex]);
+    if(name&&max)limits.set(name.toLocaleLowerCase(),max);
+  }
+  if(limits.size<10)throw new Error(`Only ${limits.size} relic Max Amount rows found`);
+  for(const r of (Array.isArray(DATA.relics)?DATA.relics:[])){
+    const key=normalizeName(r?.name||'').replace(/^LoR\s*:\s*/i,'').trim().toLocaleLowerCase();
+    if(limits.has(key))r.maxAmount=limits.get(key);
+  }
+  return limits.size;
+}
+function relicMaxAmount(r){
+  const n=Number(r?.maxAmount);
+  return Number.isFinite(n)&&n>0?Math.floor(n):3;
+}
+function relicSelectedCount(index){
+  const target=DATA.relics?.[index]; if(!target)return 0;
+  const key=stableRelicKey(target);
+  return state.relics.reduce((n,idx)=>n+(stableRelicKey(DATA.relics?.[idx])===key?1:0),0);
+}
+function relicLimitWarningText(){
+  const warnings=[];
+  const seen=new Map();
+  for(const idx of state.relics){
+    const r=DATA.relics?.[idx]; if(!r)continue;
+    const key=stableRelicKey(r); const n=(seen.get(key)||0)+1; seen.set(key,n);
+    const max=relicMaxAmount(r);
+    if(n>max)warnings.push(`${r.name}: maximum ${max} allowed.`);
+  }
+  return warnings.length?`⚠ Relic limit exceeded: ${warnings.join(' ')}`:'';
+}
 async function loadLiveData(){
   // v134: Power data is isolated from every legacy/live source.
   // Restore cache only for the other datasets, then clear Powers immediately so
@@ -2741,6 +2826,14 @@ async function loadLiveData(){
         break;
       }
     }
+  }
+
+  // v144: merge the user-provided Relic Max Amount sheet without replacing the existing relic dataset.
+  try{
+    const limitCount=await loadRelicMaxAmountsFromSheet();
+    if(limitCount)changed=true;
+  }catch(e){
+    console.warn('Relic Max Amount sheet unavailable:',e);
   }
 
   if(results[2].status==='fulfilled'){
@@ -3024,15 +3117,21 @@ function toggleAllSet(type){const source=type==='stars'?DATA.stars:DATA.bonus;co
 let relicDragIndex=-1;
 function renderRelics(){
   el('relicCount').textContent=`${state.relics.length} / 3`;
+  const warning=el('relicWarning');
+  const warningText=relicLimitWarningText();
+  if(warning){warning.textContent=warningText;warning.classList.toggle('show',!!warningText)}
   const cards=state.relics.map((idx,n)=>{
     const r=DATA.relics[idx];
     if(!r)return '';
     const cat=relicCategory(r);
     const catClass=relicCategoryClass(r);
+    const max=relicMaxAmount(r);
+    const used=relicSelectedCount(idx);
+    const limitText=Number(r?.maxAmount)>0?`<span class="relic-selected-limit">Max ${max} · ${used}/${max}</span>`:'';
     return `<div class="slot relic-option ${catClass}" draggable="true" data-relic-slot="${n}" ondragstart="startRelicDrag(${n},event)" ondragover="allowRelicDrop(event)" ondrop="dropRelic(${n},event)" ondragend="endRelicDrag()">
       <div class="slot-index" title="Drag to reorder">${n+1}</div>
       <div class="relic-icon-cell"><div class="icon"><img src="${esc(r.icon)}" alt="${esc(r.name)}" loading="lazy" onerror="this.style.display='none'"></div></div>
-      <div class="relic-name-cell"><div class="name">${esc(r.name)}</div></div>
+      <div class="relic-name-cell"><div class="name">${esc(r.name)}${limitText}</div></div>
       <div class="relic-rarity-cell">${esc(cat)}</div>
       <div class="relic-desc-cell">${esc(r.desc)}</div>
       <button class="danger" onclick="removeRelic(${n})" aria-label="Remove ${esc(r.name)}">✕</button>
@@ -3250,10 +3349,25 @@ function renderModalOptions(){
   el('modalOptions').innerHTML=filtered.map((o,row)=>{
     const cat=relicCategory(o.x);
     const cls=relicCategoryClass(o.x);
-    return `<button class="option relic-option ${cls}" onclick="addSelected(${o.i})"><div class="relic-index-cell">${row+1}</div><div class="relic-icon-cell"><div class="icon"><img src="${esc(o.x.icon)}" alt="${esc(o.x.name)}" loading="lazy" onerror="this.style.display='none'"></div></div><div class="relic-name-cell"><div class="name">${esc(o.x.name)}</div></div><div class="relic-rarity-cell">${esc(cat||'')}</div><div class="relic-desc-cell">${esc(o.x.desc||'')}</div></button>`;
+    const max=relicMaxAmount(o.x); const used=relicSelectedCount(o.i); const badge=Number(o.x?.maxAmount)>0?`<span class="relic-max-badge">MAX ${max}</span>`:''; const blocked=used>=max || state.relics.length>=3; return `<button class="option relic-option ${cls}" onclick="addSelected(${o.i})" ${blocked?'aria-disabled="true"':''}><div class="relic-index-cell">${row+1}</div><div class="relic-icon-cell"><div class="icon"><img src="${esc(o.x.icon)}" alt="${esc(o.x.name)}" loading="lazy" onerror="this.style.display='none'"></div></div><div class="relic-name-cell"><div class="name">${esc(o.x.name)}${badge}</div></div><div class="relic-rarity-cell">${esc(cat||'')}</div><div class="relic-desc-cell">${esc(o.x.desc||'')}</div></button>`;
   }).join('');
 }
-function addSelected(i){if(modalType==='relic'){if(state.relics.length>=3)return;state.relics.push(i);renderRelics();renderSelectedRelics();renderModalOptions();renderSummary();return}if(modalType==='rune'){state.rune=i;state.runeKey='';renderRunes();renderSelectedRunes();renderModalOptions();renderSummary();return}else{state.powers.push(i);renderPowers();renderSelectedPowers();renderModalOptions();renderSummary();return}}
+function addSelected(i){
+  if(modalType==='relic'){
+    if(state.relics.length>=3)return;
+    const r=DATA.relics?.[i];
+    const max=relicMaxAmount(r);
+    const used=relicSelectedCount(i);
+    if(used>=max){
+      const warning=el('relicWarning');
+      if(warning){warning.textContent=`⚠ ${r?.name||'This relic'} can be used at most ${max} time${max===1?'':'s'} (Max Amount).`;warning.classList.add('show');}
+      return;
+    }
+    state.relics.push(i);renderRelics();renderSelectedRelics();renderModalOptions();renderSummary();return
+  }
+  if(modalType==='rune'){state.rune=i;state.runeKey='';renderRunes();renderSelectedRunes();renderModalOptions();renderSummary();return}
+  state.powers.push(i);renderPowers();renderSelectedPowers();renderModalOptions();renderSummary();return
+}
 function renderSummary(){}
 function renderAll(){renderAdventureOptions();syncBuildStatsInputs();renderRegions();renderChampions();renderStars();renderBonus();renderRunes();renderRelics();renderPowers();el('champLabel').textContent=state.champion;}
 async function resetBuild(){state={region:'Bandle City',champion:'',champSearch:'',adventureCategory:'World Adventures',adventure:'',adventureDifficulty:'',level:'',health:'',regen:'',stars:new Set(),bonus:new Set(),relics:[],rune:-1,runeKey:'',powers:[],notes:''};relicFilter='ALL';powerFilter='ALL';runeFilter='ALL';el('playerNotes').value='';renderAll();try{await refreshSelectedChampionFromWiki()}catch(e){};window.scrollTo({top:0,left:0,behavior:'smooth'});setTimeout(()=>window.scrollTo(0,0),450)}
@@ -3763,7 +3877,7 @@ async function exportPNGManualFallback(){
 
     {
       // User-entered build stats. Keep Level / Health / Regen on ONE horizontal line.
-      posterSection('Build Stats','');
+      posterSection('Basic','');
       const statH=58;
       posterRow(P,y,innerW,statH);
       const statCols=[innerW/3,innerW/3,innerW/3];
@@ -3795,7 +3909,7 @@ async function exportPNGManualFallback(){
     }
 
     async function drawRuneTable(item){
-      posterSection('Runes','1 / 1');
+      posterSection('Runes','');
       if(!item){
         posterRow(P,y,innerW,62);ctx.font='16px Arial';ctx.fillStyle='#9eb4c8';ctx.fillText('—',P+18,y+38);y+=72;return;
       }
