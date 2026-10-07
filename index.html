@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content, viewport-fit=cover" />
-<title>LoR PoC Build Builder v149</title>
+<title>LoR PoC Build Builder - Save Image Buttons</title>
 <style>
   :root{--bg:#07111d;--panel:#0d1b2b;--panel2:#12243a;--line:#234361;--text:#eef5ff;--muted:#93abc2;--accent:#f3c54e;--cyan:#63d8ff;--danger:#ff7777;--glow:rgba(74,190,255,.14)}
   *{box-sizing:border-box}
@@ -333,6 +333,12 @@ textarea{background:#fff!important;color:#30464c!important;border-color:#bdcfcb!
 .modal .relic-rarity-cell{font-weight:900!important}
 
 </style>
+
+<style id="save-image-buttons-fix">
+#exportButtonsBar{display:grid!important;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+#exportButtonsBar>button{width:100%;min-width:0}
+@media(max-width:620px){#exportButtonsBar{grid-template-columns:1fr;gap:8px}}
+</style>
 </head>
 <body>
 <div class="app">
@@ -367,7 +373,11 @@ Example:
 - What this build is for
 - Playstyle / reminders
 - Personal testing notes"></textarea><div class="notes-hint">These notes will also be included in the exported PNG.</div></div></section>
-<div class="export-bar"><button class="export-primary" onclick="exportPNG()">📷 Save Image (Vertical)</button><button class="export-horizontal" onclick="exportPNGHorizontal()">📐 Save Image (Horizontal)</button><button onclick="resetBuild()">Reset</button></div><div id="exportStatus" class="export-status" role="status"></div>
+<div class="export-bar" id="exportButtonsBar">
+  <button type="button" class="export-primary" onclick="exportPNG()">📷 Save Image (Vertical)</button>
+  <button type="button" class="export-horizontal" onclick="exportPNGHorizontal()">📐 Save Image (Horizontal)</button>
+  <button type="button" onclick="resetBuild()">Reset</button>
+</div><div id="exportStatus" class="export-status" role="status"></div>
 
 <div class="footer-note">
   <span id="dataStatus">Loading live LoR data…</span>
