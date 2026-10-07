@@ -4190,7 +4190,8 @@ async function exportPNGManualFallback(){
         posterRow(P,y,innerW,62);ctx.font='16px Arial';ctx.fillStyle='#71858a';ctx.fillText('—',P+18,y+38);y+=72;return;
       }
       const rowH=Math.max(92,Math.min(6,Math.ceil(String(item.desc||'').length/44))*28+28);
-      posterRow(P,y,innerW,rowH);
+      const runePalette=exportRarityPalette(item.rarity);
+      posterRow(P,y,innerW,rowH,runePalette.fill);
       const cols=[54,82,220,125];
       line(P+cols[0],y+8,P+cols[0],y+rowH-8,'#d3e0dd',1);
       line(P+cols[0]+cols[1],y+8,P+cols[0]+cols[1],y+rowH-8,'#d3e0dd',1);
@@ -4199,7 +4200,7 @@ async function exportPNGManualFallback(){
       ctx.font='800 18px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('1',P+cols[0]/2,y+rowH/2);ctx.textBaseline='alphabetic';ctx.textAlign='left';
       const img=await safeImage(item.icon);const is=54,ix=P+cols[0]+(cols[1]-is)/2,iy=y+(rowH-is)/2;if(img)ctx.drawImage(img,ix,iy,is,is);else drawPosterIcon('✦',ix+5,iy+5,44);
       ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';wrapTextCentered(ctx,item.name||'',P+cols[0]+cols[1]+cols[2]/2,y+rowH/2+6,cols[2]-24,20,3);
-      ctx.font='800 11px Arial';ctx.fillStyle='#4d8d43';wrapTextCentered(ctx,String(item.rarity||'').toUpperCase(),P+cols[0]+cols[1]+cols[2]+cols[3]/2,y+rowH/2+5,cols[3]-24,16,2);
+      ctx.font='800 11px Arial';ctx.fillStyle=runePalette.accent;wrapTextCentered(ctx,String(item.rarity||'').toUpperCase(),P+cols[0]+cols[1]+cols[2]+cols[3]/2,y+rowH/2+5,cols[3]-24,16,2);
       ctx.font='20px Arial';ctx.fillStyle='#2d4248';const descW=innerW-(cols[0]+cols[1]+cols[2]+cols[3])-24;const descLines=Math.max(1,Math.min(6,Math.ceil(String(item.desc||'').length/44)));wrapTextCentered(ctx,item.desc||'',P+cols[0]+cols[1]+cols[2]+cols[3]+12+descW/2,y+rowH/2+8,descW,28,descLines);
       y+=rowH+10;
     }
@@ -4220,9 +4221,10 @@ async function exportPNGManualFallback(){
       for(let pi=0;pi<displayItems.length;pi++){
         showExportProgress(68 + Math.round((pi/Math.max(1,displayItems.length))*20),'Rendering Powers...');
         const item=displayItems[pi]||{};
+        const powerPalette=exportRarityPalette(item.rarity);
         const descLines=Math.max(1,Math.min(6,Math.ceil(String(item.desc||'').length/44)));
         const rowH=Math.max(92,descLines*28+28);
-        posterRow(P,y,innerW,rowH);
+        posterRow(P,y,innerW,rowH,powerPalette.fill);
         line(P+cols[0],y+8,P+cols[0],y+rowH-8,'#d3e0dd',1);
         line(P+cols[0]+cols[1],y+8,P+cols[0]+cols[1],y+rowH-8,'#d3e0dd',1);
         line(P+cols[0]+cols[1]+cols[2],y+8,P+cols[0]+cols[1]+cols[2],y+rowH-8,'#d3e0dd',1);
@@ -4253,10 +4255,10 @@ async function exportPNGManualFallback(){
 
         // v157: relic rarity must always follow the normalized relic filter/category colors.
         // Never infer the export color from an old/raw rarity label.
-        const rarity=relicCategory(item)||String(item.rarity||'').trim();
-        const rarityColor=/common/i.test(rarity)?'#4d8d43':/rare/i.test(rarity)?'#3f6fb2':/epic|signature/i.test(rarity)?'#7950a8':'#71858a';
+        const rarity=powerRarity(item)||String(item.rarity||'').trim();
+        const rarityPalette=exportRarityPalette(rarity);
         ctx.font='800 11px Arial';
-        ctx.fillStyle=rarityColor;
+        ctx.fillStyle=rarityPalette.accent;
         const rarityX=P+cols[0]+cols[1]+cols[2]+cols[3]/2;
         const rarityLines=getWrappedLines(ctx,rarity.toUpperCase(),cols[3]-24,2);
         const rarityStart=y+rowH/2-(rarityLines.length*16)/2+12;
@@ -4339,9 +4341,10 @@ async function exportPNGManualFallback(){
       for(let ri=0;ri<items.length;ri++){
         showExportProgress(52 + Math.round((ri/Math.max(1,items.length))*16),'Rendering Relics...');
         const item=items[ri];
+        const relicPalette=exportRarityPalette(item.rarity);
         const descLines=Math.max(1,Math.min(6,Math.ceil(String(item.desc||'').length/44)));
         const rowH=Math.max(92,descLines*28+28);
-        posterRow(P,y,tableW,rowH);
+        posterRow(P,y,tableW,rowH,relicPalette.fill);
         let x=P;
         line(x+cols[0],y+8,x+cols[0],y+rowH-8,'#d3e0dd',1);
         line(x+cols[0]+cols[1],y+8,x+cols[0]+cols[1],y+rowH-8,'#d3e0dd',1);
@@ -4363,7 +4366,7 @@ async function exportPNGManualFallback(){
 
         const catRaw=String(relicCategory(item)||item.rarity||item.wikiCategory||item.category||'').trim();
         const cat=/signature/i.test(catRaw)&&/epic/i.test(catRaw)?'Signature Epics':/common/i.test(catRaw)?'Common':/rare/i.test(catRaw)?'Rare':/epic/i.test(catRaw)?'Epic':catRaw;
-        const catColor=cat==='Common'?'#4d8d43':cat==='Rare'?'#3f6fb2':(cat==='Epic'||cat==='Signature Epics')?'#7950a8':'#71858a';
+        const catColor=relicPalette.accent;
         ctx.font='800 11px Arial';ctx.fillStyle=catColor;
         const catX=P+cols[0]+cols[1]+cols[2]+cols[3]/2;
         const catLines=getWrappedLines(ctx,String(cat||'').toUpperCase(),cols[3]-24,2);
@@ -4581,6 +4584,9 @@ async function exportPNGHorizontal(){
         ?champ.regions
         :(state.region&&state.region!=='ALL'?[state.region]:[])
     );
+    const generated=new Intl.DateTimeFormat('en-US',{
+      year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false
+    }).format(new Date());
 
     // All wrapping and height calculations use the same measured font metrics
     // that are used during drawing. Canvas measureText() returns the rendered
@@ -4618,21 +4624,16 @@ async function exportPNGHorizontal(){
       return lines.length?lines:[''];
     }
     function lineCount(text,font,width,max=16){return wrapLinesFor(text,font,width,max).length;}
-    function relicRarityColor(r){
-      const c=relicCategory({rarity:String(r||'')})||String(r||'');
-      if(/common/i.test(c))return '#4d8d43';
-      if(/rare/i.test(c))return '#3f6fb2';
-      if(/epic|signature/i.test(c))return '#7950a8';
-      return '#71858a';
+    function exportRarityPalette(r){
+      const s=String(r||'').trim();
+      if(/legendary/i.test(s))return {fill:'#fff0df',accent:'#c46c19',text:'#8b551c'};
+      if(/epic|signature/i.test(s))return {fill:'#f0e8f8',accent:'#7950a8',text:'#624080'};
+      if(/rare/i.test(s))return {fill:'#e7effc',accent:'#3f6fb2',text:'#31598f'};
+      if(/common/i.test(s))return {fill:'#e8f4e4',accent:'#4d8d43',text:'#35672f'};
+      return {fill:'#ffffff',accent:'#71858a',text:'#526a70'};
     }
-    function rarityColor(r){
-      const s=String(r||'');
-      if(/legendary/i.test(s))return '#c46c19';
-      if(/epic|signature/i.test(s))return '#7950a8';
-      if(/rare/i.test(s))return '#3f6fb2';
-      if(/common/i.test(s))return '#4d8d43';
-      return '#71858a';
-    }
+    function relicRarityColor(r){return exportRarityPalette(relicCategory({rarity:String(r||'')})||String(r||'')).accent;}
+    function rarityColor(r){return exportRarityPalette(r).accent;}
 
     const relicNameW=166;
     const relicDescW=Math.max(240,LEFT_W-(56+66+relicNameW+100)-26);
@@ -4642,17 +4643,18 @@ async function exportPNGHorizontal(){
       return Math.max(84,Math.max(58+n*20,34+d*22));
     }
 
-    // Power card: First Power deliberately gets more horizontal order space.
-    // Description is always a separate full-width band under the identity row.
-    const powerOrderW=124;
-    const powerIconW=78;
-    const powerContentX=powerOrderW+powerIconW+18;
-    const powerNameW=RIGHT_W-powerContentX-22;
-    const powerDescW=RIGHT_W-36;
+    // Horizontal Powers use the same five-column structure as the preview:
+    // Order / Icon / Name / Rarity / Description. Every row is fully tinted
+    // by rarity so the export remains easy to scan.
+    const powerCols=[124,72,180,105,339];
+    const powerOrderW=powerCols[0];
+    const powerIconW=powerCols[1];
+    const powerNameW=powerCols[2]-16;
+    const powerDescW=powerCols[4]-20;
     function powerRowH(item){
       const n=lineCount(item.name,'800 17px Arial',powerNameW,4);
-      const d=lineCount(item.desc,'16px Arial',powerDescW,12);
-      return Math.max(142,96+Math.max(42,n*21)+d*24);
+      const d=lineCount(item.desc,'16px Arial',powerDescW,10);
+      return Math.max(100,Math.max(46+n*21,28+d*24)+28);
     }
     function noteHeight(text){
       return Math.max(94,Math.min(340,44+lineCount(text,'16px Arial',LEFT_W-36,18)*22));
@@ -4689,7 +4691,6 @@ async function exportPNGHorizontal(){
       roundRect(ctx,x,y,w,50,12,'#e5efec','#c7d8d4');
       ctx.fillStyle='#d9ad2f';ctx.fillRect(x+14,y+11,5,28);
       ctx.font='800 20px Arial';ctx.fillStyle='#2d4248';ctx.fillText(title,x+30,y+32);
-      if(count){ctx.font='12px Arial';ctx.fillStyle='#71858a';ctx.textAlign='right';ctx.fillText(count,x+w-18,y+31);ctx.textAlign='left';}
       return y+62;
     }
     function hCard(x,y,w,h,fill='#ffffff'){roundRect(ctx,x,y,w,h,12,fill,'#c3d4d0');}
@@ -4714,21 +4715,18 @@ async function exportPNGHorizontal(){
       }
     }
 
-    // Header: champion identity is moved left, beside the title area, instead
-    // of being pinned to the far-right edge where it visually collided before.
-    hCard(P,14,W-P*2,headerH,'#f8fbfa');
-    ctx.font='800 13px Arial';ctx.fillStyle='#c49316';ctx.fillText('LEGENDS OF RUNETERRA',P+18,40);
-    ctx.fillStyle='#557077';ctx.fillText('✦  PATH OF CHAMPIONS',P+245,40);
-    ctx.font='800 38px Arial';ctx.fillStyle='#2d4248';ctx.fillText('LoR PoC Build',P+18,86);
-    ctx.font='13px Arial';ctx.fillStyle='#71858a';
-    ctx.fillText('Generated '+new Intl.DateTimeFormat('en-US',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date()),P+18,116);
+    // Header
+    ctx.fillStyle='#ffffff';ctx.fillRect(P,24,W-P*2,headerH-34);
+    ctx.fillStyle='#d9ad2f';ctx.fillRect(P+18,38,6,58);
+    ctx.font='800 13px Arial';ctx.fillStyle='#71858a';ctx.fillText('PATH OF CHAMPIONS',P+38,52);
+    ctx.font='800 30px Arial';ctx.fillStyle='#2d4248';ctx.fillText('LoR PoC Build',P+38,90);
+    ctx.font='12px Arial';ctx.fillStyle='#71858a';ctx.fillText('Generated '+generated,P+38,118);
 
+    const champImg=await safeImage(champ?.img);
     const cSize=58;
-    const champX=500;
-    const champY=43;
-    const cImg=await safeImage(champ?.img);
-    if(cImg){
-      ctx.save();ctx.beginPath();ctx.arc(champX+cSize/2,champY+cSize/2,cSize/2-1,0,Math.PI*2);ctx.clip();ctx.drawImage(cImg,champX,champY,cSize,cSize);ctx.restore();
+    const champX=500,champY=43;
+    if(champImg){
+      ctx.save();ctx.beginPath();ctx.arc(champX+cSize/2,champY+cSize/2,cSize/2,0,Math.PI*2);ctx.clip();ctx.drawImage(champImg,champX,champY,cSize,cSize);ctx.restore();
       ctx.strokeStyle='#d9ad2f';ctx.lineWidth=2;ctx.beginPath();ctx.arc(champX+cSize/2,champY+cSize/2,cSize/2,0,Math.PI*2);ctx.stroke();
     }else{
       roundRect(ctx,champX,champY,cSize,cSize,29,'#edf4f2','#9db3b0');
@@ -4772,7 +4770,7 @@ async function exportPNGHorizontal(){
     }
     ctx.textAlign='left';ly+=72+rowGap;
 
-    ly=hSection(leftX,ly,LEFT_W,'Star Powers',selectedStars.length?`${selectedStars.length} selected`:'');
+    ly=hSection(leftX,ly,LEFT_W,'Star Powers');
     const starRows=Math.max(1,Math.ceil(Math.max(1,selectedStars.length)/3));
     for(let sr=0;sr<starRows;sr++){
       const sh=54;hCard(leftX,ly,LEFT_W,sh);
@@ -4789,7 +4787,7 @@ async function exportPNGHorizontal(){
       ly+=sh+rowGap;
     }
 
-    ly=hSection(leftX,ly,LEFT_W,'Bonus Stars',selectedBonus.length?`${selectedBonus.length} selected`:'');
+    ly=hSection(leftX,ly,LEFT_W,'Bonus Stars');
     const bonusCount=Math.max(1,selectedBonus.length);
     const bonusCols=Math.min(5,bonusCount);
     const bonusRows2=Math.max(1,Math.ceil(bonusCount/bonusCols));
@@ -4803,10 +4801,10 @@ async function exportPNGHorizontal(){
       ctx.textAlign='left';ly+=50+rowGap;
     }
 
-    ly=hSection(leftX,ly,LEFT_W,'Relics',selectedRelics.length?`${selectedRelics.length} selected`:'');
+    ly=hSection(leftX,ly,LEFT_W,'Relics');
     if(selectedRelics.length){
       for(let ri=0;ri<selectedRelics.length;ri++){
-        const item=selectedRelics[ri],rh=relicRowH(item);hCard(leftX,ly,LEFT_W,rh);
+        const item=selectedRelics[ri],rh=relicRowH(item),palette=exportRarityPalette(item.rarity);hCard(leftX,ly,LEFT_W,rh,palette.fill);
         const cols=[56,66,relicNameW,100];
         let xx=leftX;
         cols.forEach(c=>{xx+=c;hLine(xx,ly+8,xx,ly+rh-8);});
@@ -4814,20 +4812,20 @@ async function exportPNGHorizontal(){
         await hImage(item.icon,leftX+56+(66-52)/2,ly+(rh-52)/2,52,8);
         ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';hWrap(item.name,leftX+56+66+8,ly+27,relicNameW-12,20,4);
         const rarity=String(relicCategory({rarity:item.rarity})||item.rarity||'').trim();
-        ctx.font='800 11px Arial';ctx.fillStyle=relicRarityColor(rarity);ctx.textAlign='center';ctx.fillText(rarity.toUpperCase(),leftX+56+66+relicNameW+50,ly+rh/2+4);ctx.textAlign='left';
+        ctx.font='800 11px Arial';ctx.fillStyle=palette.accent;ctx.textAlign='center';ctx.fillText(rarity.toUpperCase(),leftX+56+66+relicNameW+50,ly+rh/2+4);ctx.textAlign='left';
         ctx.font='16px Arial';ctx.fillStyle='#526a70';hWrap(item.desc,leftX+56+66+relicNameW+100+12,ly+27,relicDescW,22,7);
         ly+=rh+rowGap;
       }
     }else{hCard(leftX,ly,LEFT_W,54);ctx.font='16px Arial';ctx.fillStyle='#71858a';ctx.fillText('—',leftX+18,ly+34);ly+=64;}
 
     if(selectedRune){
-      ly+=rowGap;ly=hSection(leftX,ly,LEFT_W,'Runes','1 selected');
-      const rh=relicRowH(selectedRune);hCard(leftX,ly,LEFT_W,rh);
+      ly+=rowGap;ly=hSection(leftX,ly,LEFT_W,'Runes');
+      const rh=relicRowH(selectedRune),palette=exportRarityPalette(selectedRune.rarity);hCard(leftX,ly,LEFT_W,rh,palette.fill);
       const cols=[56,66,relicNameW,100];let xx=leftX;cols.forEach(c=>{xx+=c;hLine(xx,ly+8,xx,ly+rh-8);});
       ctx.font='800 16px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('1',leftX+28,ly+rh/2);ctx.textBaseline='alphabetic';
       await hImage(selectedRune.icon,leftX+63,ly+(rh-52)/2,52,8);
       ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';hWrap(selectedRune.name,leftX+130,ly+27,relicNameW-12,20,4);
-      ctx.font='800 11px Arial';ctx.fillStyle=rarityColor(selectedRune.rarity);ctx.textAlign='center';ctx.fillText(String(selectedRune.rarity||'').toUpperCase(),leftX+56+66+relicNameW+50,ly+rh/2+4);ctx.textAlign='left';
+      ctx.font='800 11px Arial';ctx.fillStyle=palette.accent;ctx.textAlign='center';ctx.fillText(String(selectedRune.rarity||'').toUpperCase(),leftX+56+66+relicNameW+50,ly+rh/2+4);ctx.textAlign='left';
       ctx.font='16px Arial';ctx.fillStyle='#526a70';hWrap(selectedRune.desc,leftX+56+66+relicNameW+100+12,ly+27,relicDescW,22,7);ly+=rh;
     }
 
@@ -4836,33 +4834,42 @@ async function exportPNGHorizontal(){
       const nh=noteHeight(noteText);hCard(leftX,ly,LEFT_W,nh);ctx.font='16px Arial';ctx.fillStyle='#526a70';hWrap(noteText,leftX+18,ly+29,LEFT_W-36,22,18);ly+=nh;
     }
 
-    // RIGHT: Powers only. This is intentionally a large, left-shifted column.
+    // RIGHT: Powers only. Exactly five columns like the preview table.
     let py=bodyTop;
-    py=hSection(rightX,py,RIGHT_W,'Powers',selectedPowers.length?`${selectedPowers.length} selected`:'');
+    py=hSection(rightX,py,RIGHT_W,'Powers');
     if(selectedPowers.length){
       const displayItems=[...selectedPowers].reverse();
       for(let pi=0;pi<displayItems.length;pi++){
         showExportProgress(10+Math.round((pi/Math.max(1,displayItems.length))*78),'Rendering Powers...');
-        const item=displayItems[pi],rh=powerRowH(item);hCard(rightX,py,RIGHT_W,rh);
+        const item=displayItems[pi],rh=powerRowH(item),palette=exportRarityPalette(item.rarity);
+        hCard(rightX,py,RIGHT_W,rh,palette.fill);
+        let xx=rightX;
+        for(let ci=0;ci<powerCols.length-1;ci++){xx+=powerCols[ci];hLine(xx,py+8,xx,py+rh-8);}
 
-        // Order column is intentionally wider than the old version so
-        // "First Power" never collides with the icon or the name.
         const orderLabel=powerOrderLabel(pi,displayItems.length);
-        ctx.font=orderLabel==='First Power'?'800 15px Arial':'800 18px Arial';
+        ctx.font=orderLabel==='First Power'?'800 15px Arial':'800 17px Arial';
         ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';
-        ctx.fillText(orderLabel,rightX+powerOrderW/2,py+43);ctx.textBaseline='alphabetic';
+        ctx.fillText(orderLabel,rightX+powerCols[0]/2,py+rh/2);ctx.textBaseline='alphabetic';
 
-        await hImage(item.iconCandidates||item.icon,rightX+powerOrderW+(powerIconW-58)/2,py+11,58,10);
+        await hImage(item.iconCandidates||item.icon,rightX+powerCols[0]+(powerCols[1]-58)/2,py+(rh-58)/2,58,10);
 
         ctx.font='800 17px Arial';ctx.fillStyle='#2d4248';
-        hWrap(item.name,rightX+powerContentX,py+30,powerNameW,21,4);
-        ctx.font='800 11px Arial';ctx.fillStyle=rarityColor(item.rarity);
-        ctx.fillText(String(item.rarity||'').toUpperCase(),rightX+powerContentX,py+72);
+        const nameX=rightX+powerCols[0]+powerCols[1]+powerCols[2]/2;
+        const nameLines=getWrappedLines(ctx,item.name||'',powerCols[2]-18,4);
+        const nameStart=py+rh/2-(nameLines.length*21)/2+16;
+        wrapTextCentered(ctx,item.name||'',nameX,nameStart,powerCols[2]-18,21,4);
 
-        hLine(rightX+16,py+94,rightX+RIGHT_W-16,py+94);
+        ctx.font='800 11px Arial';ctx.fillStyle=palette.accent;
+        const rarityX=rightX+powerCols[0]+powerCols[1]+powerCols[2]+powerCols[3]/2;
+        const rarityLines=getWrappedLines(ctx,String(item.rarity||'').toUpperCase(),powerCols[3]-14,2);
+        const rarityStart=py+rh/2-(rarityLines.length*16)/2+12;
+        wrapTextCentered(ctx,String(item.rarity||'').toUpperCase(),rarityX,rarityStart,powerCols[3]-14,16,2);
+
         ctx.font='16px Arial';ctx.fillStyle='#526a70';
-        hWrap(item.desc,rightX+18,py+122,powerDescW,24,12);
-
+        const descX=rightX+powerCols[0]+powerCols[1]+powerCols[2]+powerCols[3]+10;
+        const descLinesActual=getWrappedLines(ctx,item.desc||'',powerCols[4]-20,10);
+        const descStart=py+rh/2-(descLinesActual.length*22)/2+17;
+        wrapTextCentered(ctx,item.desc||'',descX+powerCols[4]/2-5,descStart,powerCols[4]-20,22,10);
         py+=rh+rowGap;
       }
     }else{
