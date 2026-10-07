@@ -246,6 +246,62 @@ textarea{background:#fff!important;color:#30464c!important;border-color:#bdcfcb!
   .region-card{width:auto!important;max-width:none!important;min-width:0!important}
   .region-card .region-img,.region-card.region-all .region-all-icon{width:42px!important;height:42px!important}
 }
+
+/* v154: Basic labels + persistent Adventure clear button */
+.build-stat-field > span{color:#3d5358!important;font-weight:800!important}
+.adventure-input-clear{display:block!important;color:#c95d66!important;background:transparent!important;font-weight:900!important}
+.adventure-input-clear:hover{color:#a9444f!important;background:#fff0f1!important}
+
+/* v154: Eye-friendly dark selection tables only */
+.modal{background:rgba(16,30,38,.72)!important}
+.modal-box{background:#172b36!important;border:1px solid #36515b!important;color:#e7f0f0!important;box-shadow:0 18px 50px rgba(5,15,20,.42)!important}
+.modal-head{background:#1d3541!important;border-bottom:1px solid #3a5660!important;color:#edf5f4!important}
+.modal-head>b{color:#edf5f4!important}
+.modal-close{background:#223d49!important;color:#e8f1f0!important;border-color:#58717a!important}
+.modal-close:hover{background:#294752!important;color:#fff!important}
+.search-wrap .search,.modal .search{background:#10222c!important;color:#e7f0f0!important;border-color:#45616b!important}
+.modal .search::placeholder{color:#91a5aa!important}
+.modal .search:focus{border-color:#6e929a!important;box-shadow:0 0 0 2px rgba(126,175,183,.14)!important}
+.modal-selected-relics,.modal-selected-runes,.modal-selected-powers{background:#142832!important;border-color:#38545e!important;color:#dfeceb!important}
+.modal-selected-relics .selected-relic,.modal-selected-runes .selected-rune,.modal-selected-powers .selected-power{background:#1b333e!important;border-color:#49656e!important;color:#e5eeee!important}
+.selected-relic-label,.selected-relic-hint{color:#a7b9bd!important}
+.selected-relic-slot{background:linear-gradient(145deg,#213b47,#142630)!important;border-color:#4b6872!important}
+.selected-relic-slot .selected-relic-order{background:#10212a!important;border-color:#4b6872!important;color:#e3eeee!important}
+.selected-relic-slot .selected-relic-remove{background:#2b2528!important;color:#ff9b9f!important;border-color:#764b50!important}
+.modal-relic-warning{background:#34252a!important;color:#ffb8bb!important;border-color:#754b51!important}
+.modal #modalOptions{background:transparent!important}
+.modal .option,.modal .power-row,.modal .rune-row{background:linear-gradient(145deg,#1d3541,#172a35)!important;border-color:#3b5862!important;color:#e6eeee!important;box-shadow:0 1px 0 rgba(255,255,255,.025) inset!important}
+.modal .option:hover,.modal .power-row:hover,.modal .rune-row:hover{background:linear-gradient(145deg,#25404c,#1c333e)!important;border-color:#5a7881!important}
+.modal .option .name,.modal .power-name,.modal .rune-name,.modal .relic-name-cell{color:#edf5f4!important}
+.modal .desc,.modal .power-desc,.modal .rune-desc,.modal .cost{color:#aebfc2!important}
+.modal .icon,.modal .power-icon{background:linear-gradient(145deg,#29434e,#1b303a)!important;border-color:#57727a!important}
+.modal .relic-desc-cell,.modal .power-desc{border-top-color:#3a5660!important}
+.modal .slot{background:linear-gradient(145deg,#1d3541,#172a35)!important;border-color:#3b5862!important;color:#e6eeee!important}
+.modal .slot .name{color:#edf5f4!important}
+.modal .slot .relic-desc-cell{border-top-color:#3a5660!important;color:#aebfc2!important}
+.modal .slot .danger{background:#39272b!important;border-color:#7a4c52!important;color:#ff9b9f!important}
+.modal .option .danger{background:#39272b!important;border-color:#7a4c52!important;color:#ff9b9f!important}
+.modal .selected-rune-card{color:#edf5f4!important}
+.selected-rune-remove{background:#39272b!important;color:#ff9b9f!important;border-color:#7a4c52!important}
+/* Keep rarity filter identity while making buttons readable on the dark modal */
+.modal .relic-filter{background:#203943!important;color:#d9e5e5!important;border-color:#58727a!important}
+.modal .relic-filter.relic-filter-all{color:#f3cf63!important;border-color:#c5a13d!important}
+.modal .relic-filter.relic-filter-common{color:#93d77a!important;border-color:#6fa85f!important}
+.modal .relic-filter.relic-filter-rare{color:#91b9ff!important;border-color:#668dcc!important}
+.modal .relic-filter.relic-filter-epic,.modal .relic-filter.relic-filter-signature{color:#c494f3!important;border-color:#9872bd!important}
+.modal .relic-filter.relic-filter-legendary{color:#f2aa62!important;border-color:#cf8545!important}
+.modal .relic-filter.active.relic-filter-all{background:#493e20!important;color:#ffe08a!important}
+.modal .relic-filter.active.relic-filter-common{background:#28432a!important;color:#a9e58f!important}
+.modal .relic-filter.active.relic-filter-rare{background:#263b5b!important;color:#a8c9ff!important}
+.modal .relic-filter.active.relic-filter-epic,.modal .relic-filter.active.relic-filter-signature{background:#392b4d!important;color:#d5aff9!important}
+.modal .relic-filter.active.relic-filter-legendary{background:#4b3422!important;color:#ffc080!important}
+/* Rune-specific filters */
+.modal .rune-filter{background:#203943!important}
+.modal .rune-filter-all{color:#f3cf63!important;border-color:#c5a13d!important}
+.modal .rune-filter-common{color:#93d77a!important;border-color:#6fa85f!important}
+.modal .rune-filter-rare{color:#91b9ff!important;border-color:#668dcc!important}
+.modal .rune-filter-epic{color:#c494f3!important;border-color:#9872bd!important}
+.modal .rune-filter-legendary{color:#f2aa62!important;border-color:#cf8545!important}
 </style>
 </head>
 <body>
@@ -260,7 +316,7 @@ textarea{background:#fff!important;color:#30464c!important;border-color:#bdcfcb!
 
 <section><div class="title"><span>Champion</span><div class="champ-title-tools"><div class="champ-search-wrap"><input id="champSearch" class="champ-search" type="search" autocomplete="off" spellcheck="false" placeholder="Search champion..." aria-label="Search champion"><button id="champSearchClear" class="champ-search-clear" type="button" aria-label="Clear champion search">×</button></div><small id="champLabel" class="champ-selected-label">Illaoi</small></div></div><div class="body"><div class="champ-grid" id="champions"></div></div></section>
 
-<section id="buildStatsSection"><div class="title"><span>Basic</span><small>optional · fill in freely</small></div><div class="body"><div class="build-stats-grid"><label class="build-stat-field"><span>Level</span><input id="buildLevel" type="text" inputmode="numeric" autocomplete="off" placeholder="Level"></label><label class="build-stat-field"><span>Health</span><input id="buildHealth" type="text" inputmode="decimal" autocomplete="off" placeholder="Health"></label><label class="build-stat-field"><span>Regen</span><input id="buildRegen" type="text" inputmode="decimal" autocomplete="off" placeholder="Regen"></label></div></div></section>
+<section id="buildStatsSection"><div class="title"><span>Basic</span><small>optional · fill in freely</small></div><div class="body"><div class="build-stats-grid"><label class="build-stat-field"><span>Level</span><input id="buildLevel" type="text" inputmode="numeric" autocomplete="off" placeholder=""></label><label class="build-stat-field"><span>Health</span><input id="buildHealth" type="text" inputmode="decimal" autocomplete="off" placeholder=""></label><label class="build-stat-field"><span>Regen</span><input id="buildRegen" type="text" inputmode="decimal" autocomplete="off" placeholder=""></label></div></div></section>
 
 <section id="adventureSection"><div class="title"><span>Adventure</span><div class="adventure-tools"><select id="adventureCategory" class="adventure-select" aria-label="Adventure category"><option value="World Adventures">World Adventures</option><option value="Nightmare Adventures">Nightmare Adventures</option><option value="Event Campaigns">Event Campaigns</option><option value="Other">Other</option></select><div class="adventure-row"><div class="adventure-input-wrap"><input id="adventureInput" class="adventure-input" type="text" list="adventureList" autocomplete="off" spellcheck="false" placeholder="Type adventure name..." aria-label="Adventure name"><button type="button" id="adventureInputClear" class="adventure-input-clear" aria-label="Clear adventure search">×</button></div><select id="adventureSelect" class="adventure-select" aria-label="Choose adventure"><option value="">Select adventure...</option></select></div></div></div><div class="body"><div class="adventure-row"><div class="adventure-empty" id="adventureStatus">Loading live adventures…</div><div class="adventure-difficulty" id="adventureDifficulty">—</div></div><datalist id="adventureList"></datalist></div></section>
 
