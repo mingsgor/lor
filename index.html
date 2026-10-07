@@ -4251,8 +4251,10 @@ async function exportPNGManualFallback(){
         const nameStart=y+rowH/2-(nameLines.length*20)/2+16;
         wrapTextCentered(ctx,item.name||'',nameX,nameStart,cols[2]-24,20,3);
 
-        const rarity=String(item.rarity||'').trim();
-        const rarityColor=/legendary/i.test(rarity)?'#c46c19':/epic/i.test(rarity)?'#7950a8':/rare/i.test(rarity)?'#3f6fb2':'#4d8d43';
+        // v157: relic rarity must always follow the normalized relic filter/category colors.
+        // Never infer the export color from an old/raw rarity label.
+        const rarity=relicCategory(item)||String(item.rarity||'').trim();
+        const rarityColor=/common/i.test(rarity)?'#4d8d43':/rare/i.test(rarity)?'#3f6fb2':/epic|signature/i.test(rarity)?'#7950a8':'#71858a';
         ctx.font='800 11px Arial';
         ctx.fillStyle=rarityColor;
         const rarityX=P+cols[0]+cols[1]+cols[2]+cols[3]/2;
@@ -4359,7 +4361,7 @@ async function exportPNGManualFallback(){
         const nameStart=y+rowH/2-(nameLines.length*20)/2+16;
         wrapTextCentered(ctx,item.name||'',nameX,nameStart,cols[2]-24,20,3);
 
-        const cat=relicCategory(item);
+        const cat=relicCategory(item)||String(item.rarity||'').trim();
         const catColor=/common/i.test(String(cat||''))?'#4d8d43':/rare/i.test(String(cat||''))?'#3f6fb2':/epic|signature/i.test(String(cat||''))?'#7950a8':'#71858a';
         ctx.font='800 11px Arial';ctx.fillStyle=catColor;
         const catX=P+cols[0]+cols[1]+cols[2]+cols[3]/2;
@@ -4479,7 +4481,7 @@ async function exportPNGManualFallback(){
 }
 
 
-// v156: stable horizontal renderer — measured text layout + fixed right Power column.
+// v157: wider Power column + normalized vertical relic rarity + measured power rows.
 async function exportPNGHorizontal(){
   const btn=document.querySelector('.export-horizontal');
   if(!btn)return;
@@ -4496,8 +4498,10 @@ async function exportPNGHorizontal(){
     state.notes=el('playerNotes').value;
     const W=1536;
     const P=36;
-    const GAP=24;
-    const RIGHT_W=520;
+    const GAP=20;
+    // Powers contain the longest text, so give the right column the larger share
+    // of the horizontal canvas. Everything else remains in the left column.
+    const RIGHT_W=760;
     const LEFT_W=W-P*2-GAP-RIGHT_W;
     const leftX=P;
     const rightX=P+LEFT_W+GAP;
@@ -4584,11 +4588,14 @@ async function exportPNGHorizontal(){
       return Math.max(88,Math.max(nameH+42,descH+50));
     }
     function powerRowH(item){
-      const nameH=nameLines(item,RIGHT_W-166)*19;
-      const descH=descLines(item,RIGHT_W-36)*22;
-      // Fixed header area + measured description area. Never allow the text to
-      // collide with the next card.
-      return Math.max(132,86+Math.max(nameH,38)+descH);
+      const orderW=92, iconW=68, contentX=orderW+iconW+18;
+      const nameW=RIGHT_W-contentX-18;
+      const nameH=nameLines(item,nameW)*20;
+      const descH=descLines(item,RIGHT_W-36,'16px Arial')*24;
+      // The first row is reserved for order/icon/name/rarity; description gets
+      // its own full-width row. Height is derived from the same measured fonts
+      // used by the renderer, so no power can overlap the next card.
+      return Math.max(148,108+Math.max(nameH,40)+descH);
     }
     function noteHeight(text){return Math.max(100,Math.min(360,48+wrapLinesFor(text,'16px Arial',LEFT_W-36,18).length*22));}
 
@@ -4708,13 +4715,23 @@ async function exportPNGHorizontal(){
       for(let pi=0;pi<displayItems.length;pi++){
         showExportProgress(10+Math.round((pi/Math.max(1,displayItems.length))*78),'Rendering Powers (right column)...');
         const item=displayItems[pi],rh=powerRowH(item);hCard(rightX,py,RIGHT_W,rh);
+        const orderW=92, iconW=68, contentX=orderW+iconW+18;
         const orderLabel=powerOrderLabel(pi,displayItems.length);
-        // Top row: order + icon + name + rarity. Bottom row: description.
-        ctx.font=orderLabel==='First Power'?'800 14px Arial':'800 17px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(orderLabel,rightX+48,py+34);ctx.textBaseline='alphabetic';
-        await hImage(item.iconCandidates||item.icon,rightX+78,py+10,54);
-        ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';const nameW=RIGHT_W-166;hWrap(item.name,rightX+144,py+29,nameW,19,4);ctx.font='800 11px Arial';ctx.fillStyle=rarityColor(item.rarity);ctx.fillText(String(item.rarity||'').toUpperCase(),rightX+144,py+67);
-        hLine(rightX+16,py+82,rightX+RIGHT_W-16,py+82);
-        ctx.font='15px Arial';ctx.fillStyle='#526a70';hWrap(item.desc,rightX+18,py+108,RIGHT_W-36,22,9);
+        // Stable power card: dedicated order column, dedicated icon column,
+        // then name/rarity. Description is always a separate full-width row.
+        ctx.font=orderLabel==='First Power'?'800 14px Arial':'800 17px Arial';
+        ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(orderLabel,rightX+orderW/2,py+40);
+        ctx.textBaseline='alphabetic';
+        await hImage(item.iconCandidates||item.icon,rightX+orderW+8,py+10,iconW-8,10);
+        const nameW=RIGHT_W-contentX-18;
+        ctx.font='800 17px Arial';ctx.fillStyle='#2d4248';
+        hWrap(item.name,rightX+contentX,py+30,nameW,21,4);
+        ctx.font='800 11px Arial';ctx.fillStyle=rarityColor(item.rarity);
+        ctx.fillText(String(item.rarity||'').toUpperCase(),rightX+contentX,py+72);
+        hLine(rightX+16,py+92,rightX+RIGHT_W-16,py+92);
+        ctx.font='16px Arial';ctx.fillStyle='#526a70';
+        hWrap(item.desc,rightX+18,py+120,RIGHT_W-36,24,12);
         py+=rh+rowGap;
       }
     }else{hCard(rightX,py,RIGHT_W,70);ctx.font='16px Arial';ctx.fillStyle='#71858a';ctx.fillText('—',rightX+18,py+42);py+=82;}
