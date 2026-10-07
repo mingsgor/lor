@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content, viewport-fit=cover" />
-<title>LoR PoC Build Builder - Save Image Buttons</title>
+<title>LoR PoC Build Builder v149</title>
 <style>
   :root{--bg:#07111d;--panel:#0d1b2b;--panel2:#12243a;--line:#234361;--text:#eef5ff;--muted:#93abc2;--accent:#f3c54e;--cyan:#63d8ff;--danger:#ff7777;--glow:rgba(74,190,255,.14)}
   *{box-sizing:border-box}
@@ -333,12 +333,6 @@ textarea{background:#fff!important;color:#30464c!important;border-color:#bdcfcb!
 .modal .relic-rarity-cell{font-weight:900!important}
 
 </style>
-
-<style id="save-image-buttons-fix">
-#exportButtonsBar{display:grid!important;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
-#exportButtonsBar>button{width:100%;min-width:0}
-@media(max-width:620px){#exportButtonsBar{grid-template-columns:1fr;gap:8px}}
-</style>
 </head>
 <body>
 <div class="app">
@@ -373,11 +367,7 @@ Example:
 - What this build is for
 - Playstyle / reminders
 - Personal testing notes"></textarea><div class="notes-hint">These notes will also be included in the exported PNG.</div></div></section>
-<div class="export-bar" id="exportButtonsBar">
-  <button type="button" class="export-primary" onclick="exportPNG()">📷 Save Image (Vertical)</button>
-  <button type="button" class="export-horizontal" onclick="exportPNGHorizontal()">📐 Save Image (Horizontal)</button>
-  <button type="button" onclick="resetBuild()">Reset</button>
-</div><div id="exportStatus" class="export-status" role="status"></div>
+<div class="export-bar"><button class="export-primary" onclick="exportPNG()">📷 Save Image (Vertical)</button><button class="export-horizontal" onclick="exportPNGHorizontal()">📐 Save Image (Horizontal)</button><button onclick="resetBuild()">Reset</button></div><div id="exportStatus" class="export-status" role="status"></div>
 
 <div class="footer-note">
   <span id="dataStatus">Loading live LoR data…</span>
@@ -4370,7 +4360,7 @@ async function exportPNGManualFallback(){
         wrapTextCentered(ctx,item.name||'',nameX,nameStart,cols[2]-24,20,3);
 
         const cat=relicCategory(item);
-        const catColor=cat==='Commons'?'#4d8d43':cat==='Rares'?'#3f6fb2':/signature/i.test(cat)?'#7950a8':'#7950a8';
+        const catColor=/common/i.test(String(cat||''))?'#4d8d43':/rare/i.test(String(cat||''))?'#3f6fb2':/epic|signature/i.test(String(cat||''))?'#7950a8':'#71858a';
         ctx.font='800 11px Arial';ctx.fillStyle=catColor;
         const catX=P+cols[0]+cols[1]+cols[2]+cols[3]/2;
         const catLines=getWrappedLines(ctx,String(cat||'').toUpperCase(),cols[3]-24,2);
@@ -4489,6 +4479,7 @@ async function exportPNGManualFallback(){
 }
 
 
+// v156: stable horizontal renderer — measured text layout + fixed right Power column.
 async function exportPNGHorizontal(){
   const btn=document.querySelector('.export-horizontal');
   if(!btn)return;
@@ -4506,35 +4497,30 @@ async function exportPNGHorizontal(){
     const W=1536;
     const P=36;
     const GAP=24;
-    const RIGHT_W=500;
+    const RIGHT_W=520;
     const LEFT_W=W-P*2-GAP-RIGHT_W;
     const leftX=P;
     const rightX=P+LEFT_W+GAP;
-    const scale=1;
     const headerH=150;
     const bodyTop=headerH+24;
     const rowGap=12;
 
     const selectedStars=[...state.stars]
-      .map(i=>DATA.stars[i])
-      .filter(Boolean)
+      .map(i=>DATA.stars[i]).filter(Boolean)
       .sort((a,b)=>{
         const starValue=x=>{
           if(x?.kind==='rune')return Number.POSITIVE_INFINITY;
           const explicit=Number(x?.starLevel);
-          if(Number.isFinite(explicit) && explicit>=7)return Number.POSITIVE_INFINITY;
+          if(Number.isFinite(explicit)&&explicit>=7)return Number.POSITIVE_INFINITY;
           if(Number.isFinite(explicit))return explicit;
           const raw=String(x?.star||'');
-          const count=(raw.match(/★/g)||[]).length;
-          return count||Number(x?.star)||0;
+          return (raw.match(/★/g)||[]).length||Number(x?.star)||0;
         };
         return starValue(a)-starValue(b);
       });
 
-    const selectedBonus=[...document.querySelectorAll('#bonus .bonus-item')].filter(node=>{
-      const cb=node.querySelector('input[type=checkbox]');
-      return !!cb?.checked;
-    }).map(node=>({number:Number(node.querySelector('.bonus-number')?.textContent||0)}))
+    const selectedBonus=[...document.querySelectorAll('#bonus .bonus-item')].filter(node=>node.querySelector('input[type=checkbox]')?.checked)
+      .map(node=>({number:Number(node.querySelector('.bonus-number')?.textContent||0)}))
       .filter(x=>Number.isFinite(x.number)&&x.number>0);
 
     const selectedRelics=[...document.querySelectorAll('#relicSlots .slot')].map(node=>{
@@ -4543,10 +4529,7 @@ async function exportPNGHorizontal(){
       if(nameNode){
         const clone=nameNode.cloneNode(true);
         clone.querySelectorAll('.relic-selected-limit,.relic-max-badge').forEach(n=>n.remove());
-        name=String(clone.textContent||'')
-          .replace(/Max\s+\d+\s*[·•-]?\s*\d+\s*\/\s*\d+/gi,'')
-          .replace(/Max\s+\d+\s*(?:time(?:s)?|copies)?/gi,'')
-          .replace(/\s+/g,' ').trim();
+        name=String(clone.textContent||'').replace(/Max\s+\d+\s*[·•-]?\s*\d+\s*\/\s*\d+/gi,'').replace(/Max\s+\d+\s*(?:time(?:s)?|copies)?/gi,'').replace(/\s+/g,' ').trim();
       }
       return {
         name,
@@ -4559,25 +4542,14 @@ async function exportPNGHorizontal(){
     const selectedRune=(()=>{
       const node=document.querySelector('#runeSlots .rune-row');
       if(!node)return null;
-      return {
-        name:String(node.querySelector('.rune-name')?.textContent||'').trim(),
-        icon:node.querySelector('.rune-icon img')?.getAttribute('src')||'',
-        rarity:String(node.querySelector('.rune-rarity')?.textContent||'').trim(),
-        desc:String(node.querySelector('.rune-desc')?.textContent||'').trim()
-      };
+      return {name:String(node.querySelector('.rune-name')?.textContent||'').trim(),icon:node.querySelector('.rune-icon img')?.getAttribute('src')||'',rarity:String(node.querySelector('.rune-rarity')?.textContent||'').trim(),desc:String(node.querySelector('.rune-desc')?.textContent||'').trim()};
     })();
 
     const selectedPowers=[...document.querySelectorAll('#powerList .power-row')].map(node=>{
       const name=String(node.querySelector('.power-name')?.textContent||'').trim();
       const dataPower=DATA.powers.find(p=>String(p?.name||'').trim().toLocaleLowerCase()===name.toLocaleLowerCase());
       const domIcon=node.querySelector('.power-icon img')?.getAttribute('src')||'';
-      return {
-        name,
-        icon:domIcon,
-        iconCandidates:[domIcon,...powerIconCandidates(dataPower)].filter(Boolean),
-        rarity:String(node.querySelector('.power-rarity')?.textContent||dataPower?.rarity||'').trim(),
-        desc:String(node.querySelector('.power-desc')?.textContent||dataPower?.desc||'').trim()
-      };
+      return {name,icon:domIcon,iconCandidates:[domIcon,...powerIconCandidates(dataPower)].filter(Boolean),rarity:String(node.querySelector('.power-rarity')?.textContent||dataPower?.rarity||'').trim(),desc:String(node.querySelector('.power-desc')?.textContent||dataPower?.desc||'').trim()};
     }).filter(x=>x.name);
 
     const champ=DATA.champions.find(c=>c.name===state.champion);
@@ -4585,47 +4557,70 @@ async function exportPNGHorizontal(){
     const noteText=(state.notes||'').trim();
     const championRegions=orderedChampionRegions(Array.isArray(champ?.regions)&&champ.regions.length?champ.regions:(state.region&&state.region!=='ALL'?[state.region]:[]));
 
-    const descLines=(text,maxChars=46)=>Math.max(1,Math.min(7,Math.ceil(String(text||'').length/maxChars)));
-    const relicRowH=item=>Math.max(88,descLines(item.desc,48)*24+34);
-    const powerRowH=item=>Math.max(118,74+descLines(item.desc,48)*24);
+    // Use the actual canvas font metrics for wrapping. This prevents a row from
+    // being shorter than its text when names/descriptions contain unusually long words.
+    const measureCanvas=document.createElement('canvas');
+    const mctx=measureCanvas.getContext('2d');
+    function wrapLinesFor(text,font,maxWidth,maxLines=12){
+      mctx.font=font;
+      const words=String(text||'').split(/\s+/).filter(Boolean);
+      if(!words.length)return [''];
+      const lines=[];let line='';
+      for(const word of words){
+        const test=line?line+' '+word:word;
+        if(mctx.measureText(test).width>maxWidth&&line){
+          lines.push(line);line=word;
+          if(lines.length>=maxLines)break;
+        }else line=test;
+      }
+      if(lines.length<maxLines&&line)lines.push(line);
+      return lines.length?lines:[''];
+    }
+    function descLines(item,maxWidth,font='15px Arial'){return wrapLinesFor(item?.desc||'',font,maxWidth,9).length;}
+    function nameLines(item,maxWidth,font='800 16px Arial'){return wrapLinesFor(item?.name||'',font,maxWidth,4).length;}
+    function relicRowH(item){
+      const nameH=nameLines(item,146)*19;
+      const descH=descLines(item,LEFT_W-(56+66+170+110)-28)*22;
+      return Math.max(88,Math.max(nameH+42,descH+50));
+    }
+    function powerRowH(item){
+      const nameH=nameLines(item,RIGHT_W-166)*19;
+      const descH=descLines(item,RIGHT_W-36)*22;
+      // Fixed header area + measured description area. Never allow the text to
+      // collide with the next card.
+      return Math.max(132,86+Math.max(nameH,38)+descH);
+    }
+    function noteHeight(text){return Math.max(100,Math.min(360,48+wrapLinesFor(text,'16px Arial',LEFT_W-36,18).length*22));}
 
-    // The horizontal layout is deliberately a new composition: one wide image,
-    // a full-width header, all normal build information on the left, and Powers
-    // in a dedicated column that is always on the far right.
+    // Measure both columns before creating the bitmap so the canvas height is exact.
     let leftY=bodyTop;
-    leftY+=86+rowGap; // Adventure
-    leftY+=88+rowGap; // Basic
-    leftY+=58+52+Math.ceil(Math.max(1,selectedStars.length)/3)*68+rowGap;
-    leftY+=58+52+(selectedBonus.length?Math.ceil(selectedBonus.length/Math.max(1,Math.ceil(selectedBonus.length/2)))*58:58)+rowGap;
-    leftY+=58+selectedRelics.reduce((a,it)=>a+relicRowH(it)+rowGap,0)+rowGap;
-    if(selectedRune)leftY+=58+relicRowH(selectedRune)+rowGap;
-    if(noteText)leftY+=58+Math.max(100,Math.min(360,48+descLines(noteText,90)*22))+rowGap;
+    leftY+=62+74+rowGap; // Adventure title + card
+    leftY+=62+76+rowGap; // Basic
+    leftY+=62+(selectedStars.length?Math.ceil(selectedStars.length/3)*58:58)+rowGap;
+    const bonusCols=Math.max(1,Math.ceil(Math.max(1,selectedBonus.length)/2));
+    leftY+=62+(selectedBonus.length?Math.ceil(selectedBonus.length/bonusCols)*52:52)+rowGap;
+    leftY+=62+(selectedRelics.length?selectedRelics.reduce((sum,it)=>sum+relicRowH(it)+rowGap,0):58)+rowGap;
+    if(selectedRune)leftY+=62+relicRowH(selectedRune)+rowGap;
+    if(noteText)leftY+=62+noteHeight(noteText)+rowGap;
 
-    let rightY=bodyTop+58;
-    rightY+=selectedPowers.reduce((a,it)=>a+powerRowH(it)+rowGap,0);
-
+    let rightY=bodyTop+62;
+    rightY+=selectedPowers.length?selectedPowers.reduce((sum,it)=>sum+powerRowH(it)+rowGap,0):82;
     const footerH=56;
-    const H=Math.max(leftY,rightY,bodyTop+120)+footerH;
+    const H=Math.ceil(Math.max(leftY,rightY,bodyTop+120)+footerH);
+
     const canvas=document.createElement('canvas');
-    canvas.width=Math.round(W*scale);
-    canvas.height=Math.round(H*scale);
+    canvas.width=W;
+    canvas.height=H;
     const ctx=canvas.getContext('2d');
-    ctx.scale(scale,scale);
     ctx.textBaseline='alphabetic';
 
-    // Input UI palette: soft mint background, white panels, muted teal text,
-    // gold accent, and the same rarity colors used by the editor.
-    ctx.fillStyle='#eef4f2';
-    ctx.fillRect(0,0,W,H);
+    // Exact same visual palette as the input UI.
     const bg=ctx.createLinearGradient(0,0,0,H);
     bg.addColorStop(0,'#f4f8f7');
     bg.addColorStop(1,'#e8f0ee');
-    ctx.fillStyle=bg;
-    ctx.fillRect(0,0,W,H);
+    ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
 
-    function hLine(x1,y1,x2,y2,color='#d3e0dd',width=1){
-      ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();
-    }
+    function hLine(x1,y1,x2,y2,color='#d3e0dd',width=1){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle=color;ctx.lineWidth=width;ctx.stroke();}
     function hSection(x,y,w,title,count=''){
       roundRect(ctx,x,y,w,50,12,'#e5efec','#c7d8d4');
       ctx.fillStyle='#d9ad2f';ctx.fillRect(x+15,y+11,5,28);
@@ -4633,136 +4628,97 @@ async function exportPNGHorizontal(){
       if(count){ctx.font='12px Arial';ctx.fillStyle='#71858a';ctx.textAlign='right';ctx.fillText(count,x+w-18,y+31);ctx.textAlign='left';}
       return y+62;
     }
-    function hCard(x,y,w,h,fill='#ffffff'){
-      roundRect(ctx,x,y,w,h,12,fill,'#c3d4d0');
-    }
-    function hWrap(text,x,y,maxWidth,lineHeight,maxLines=5,align='left'){
-      const words=String(text||'').split(/\s+/);let line='';const lines=[];
+    function hCard(x,y,w,h,fill='#ffffff'){roundRect(ctx,x,y,w,h,12,fill,'#c3d4d0');}
+    function hWrap(text,x,y,maxWidth,lineHeight,maxLines=12,align='left'){
+      const font=ctx.font;
+      const lines=wrapLinesFor(text,font,maxWidth,maxLines);
       ctx.textAlign=align;
-      for(const word of words){
-        const test=line?line+' '+word:word;
-        if(ctx.measureText(test).width>maxWidth&&line){
-          lines.push(line);line=word;if(lines.length>=maxLines)break;
-        }else line=test;
-      }
-      if(lines.length<maxLines&&line)lines.push(line);
       lines.forEach((ln,i)=>ctx.fillText(ln,x,y+i*lineHeight));
       ctx.textAlign='left';
       return lines.length;
     }
     async function hImage(src,x,y,size,radius=9){
       const img=await safeImage(src);
-      if(img){
-        ctx.save();ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,size,size,radius):roundRect(ctx,x,y,size,size,radius,'#edf4f2','#9db3b0');
-        ctx.clip();ctx.drawImage(img,x,y,size,size);ctx.restore();
-      }else{
-        roundRect(ctx,x,y,size,size,radius,'#edf4f2','#9db3b0');
-        ctx.font=`800 ${Math.max(18,Math.round(size*.45))}px Arial`;ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✦',x+size/2,y+size/2);ctx.textAlign='left';ctx.textBaseline='alphabetic';
-      }
+      if(img){ctx.save();ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,size,size,radius);else roundRect(ctx,x,y,size,size,radius);ctx.clip();ctx.drawImage(img,x,y,size,size);ctx.restore();}
+      else{roundRect(ctx,x,y,size,size,radius,'#edf4f2','#9db3b0');ctx.font=`800 ${Math.max(18,Math.round(size*.45))}px Arial`;ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('✦',x+size/2,y+size/2);ctx.textAlign='left';ctx.textBaseline='alphabetic';}
     }
     function rarityColor(r){
-      return /legendary/i.test(String(r||''))?'#c46c19':/epic|signature/i.test(String(r||''))?'#7950a8':/rare/i.test(String(r||''))?'#3f6fb2':'#4d8d43';
+      const s=String(r||'');
+      if(/legendary/i.test(s))return '#c46c19';
+      if(/epic|signature/i.test(s))return '#7950a8';
+      if(/rare/i.test(s))return '#3f6fb2';
+      if(/common/i.test(s))return '#4d8d43';
+      return '#71858a';
     }
 
-    // Header
+    // Header: same visual language as the vertical export/input UI.
     hCard(P,18,W-P*2,headerH,'#f8fbfa');
     ctx.font='800 13px Arial';ctx.fillStyle='#c49316';ctx.fillText('LEGENDS OF RUNETERRA',P+18,47);
     ctx.fillStyle='#557077';ctx.fillText('✦  PATH OF CHAMPIONS',P+245,47);
     ctx.font='800 38px Arial';ctx.fillStyle='#2d4248';ctx.fillText('LoR PoC Build',P+18,94);
-    ctx.font='800 26px Arial';ctx.fillStyle='#2d4248';ctx.textAlign='right';ctx.fillText(state.champion||'Unknown Champion',W-P-92,77);ctx.textAlign='left';
     ctx.font='13px Arial';ctx.fillStyle='#71858a';ctx.fillText('Generated '+new Intl.DateTimeFormat('en-US',{year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date()),P+18,123);
+
     const cImg=await safeImage(champ?.img);
     const cSize=62,cx=W-P-cSize;
     if(cImg){ctx.save();ctx.beginPath();ctx.arc(cx+cSize/2,51+cSize/2,cSize/2-1,0,Math.PI*2);ctx.clip();ctx.drawImage(cImg,cx,51,cSize,cSize);ctx.restore();ctx.strokeStyle='#d9ad2f';ctx.lineWidth=2;ctx.beginPath();ctx.arc(cx+cSize/2,51+cSize/2,cSize/2,0,Math.PI*2);ctx.stroke();}
     else{roundRect(ctx,cx,51,cSize,cSize,31,'#edf4f2','#9db3b0');ctx.font='800 24px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.fillText((state.champion||'?').slice(0,1),cx+cSize/2,90);ctx.textAlign='left';}
+    ctx.font='800 26px Arial';ctx.fillStyle='#2d4248';ctx.textAlign='right';ctx.fillText(state.champion||'Unknown Champion',cx-16,88);ctx.textAlign='left';
+
     const rSize=38,rGap=8;
-    let rx=W-P-92-(championRegions.length*(rSize+rGap));
+    let rx=cx-18-(championRegions.length*(rSize+rGap));
     for(const rName of championRegions){
-      const rData=DATA.regions.find(r=>r.name===rName);const rImg=await safeImage(rData?.img);
-      if(rImg){ctx.save();ctx.beginPath();ctx.arc(rx+rSize/2,37+rSize/2,rSize/2-1,0,Math.PI*2);ctx.clip();ctx.drawImage(rImg,rx,37,rSize,rSize);ctx.restore();ctx.strokeStyle='#d9ad2f';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(rx+rSize/2,37+rSize/2,rSize/2,0,Math.PI*2);ctx.stroke();}
+      const rData=DATA.regions.find(r=>r.name===rName),rImg=await safeImage(rData?.img);
+      if(rImg){ctx.save();ctx.beginPath();ctx.arc(rx+rSize/2,51+rSize/2,rSize/2-1,0,Math.PI*2);ctx.clip();ctx.drawImage(rImg,rx,51,rSize,rSize);ctx.restore();ctx.strokeStyle='#d9ad2f';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(rx+rSize/2,51+rSize/2,rSize/2,0,Math.PI*2);ctx.stroke();}
       rx+=rSize+rGap;
     }
-    ctx.font='700 12px Arial';ctx.fillStyle='#71858a';ctx.textAlign='left';
 
-    // Left column: normal build content.
-    leftY=bodyTop;
-    leftY=hSection(leftX,leftY,LEFT_W,'Adventure');
-    hCard(leftX,leftY,LEFT_W,74,'#ffffff');
-    ctx.font='800 13px Arial';ctx.fillStyle='#71858a';ctx.fillText('Adventure',leftX+18,leftY+29);
-    ctx.font='800 18px Arial';ctx.fillStyle='#2d4248';ctx.fillText(adventureName,leftX+140,leftY+30);
-    ctx.font='800 13px Arial';ctx.fillStyle='#8a6a0d';ctx.fillText(state.adventureDifficulty||'—',leftX+140,leftY+53);
-    leftY+=74+rowGap;
+    // LEFT: everything except Powers.
+    let ly=bodyTop;
+    ly=hSection(leftX,ly,LEFT_W,'Adventure');
+    hCard(leftX,ly,LEFT_W,74);ctx.font='800 13px Arial';ctx.fillStyle='#71858a';ctx.fillText('Adventure',leftX+18,ly+29);ctx.font='800 18px Arial';ctx.fillStyle='#2d4248';hWrap(adventureName,leftX+140,ly+30,LEFT_W-280,22,2);ctx.font='800 13px Arial';ctx.fillStyle='#8a6a0d';ctx.fillText(state.adventureDifficulty||'—',leftX+140,ly+58);ly+=74+rowGap;
 
-    leftY=hSection(leftX,leftY,LEFT_W,'Basic');
-    hCard(leftX,leftY,LEFT_W,76,'#ffffff');
+    ly=hSection(leftX,ly,LEFT_W,'Basic');
+    hCard(leftX,ly,LEFT_W,76);
     const basic=[['Level',state.level],['Health',state.health],['Regen',state.regen]];
-    basic.forEach((it,i)=>{const bw=LEFT_W/3,bx=leftX+bw*i;if(i)hLine(bx,leftY+10,bx,leftY+66);ctx.font='800 14px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.fillText(it[0],bx+bw/2-20,leftY+45);ctx.font='800 20px Arial';ctx.fillStyle='#2d4248';ctx.fillText(String(it[1]||'—'),bx+bw/2+32,leftY+45);});ctx.textAlign='left';
-    leftY+=76+rowGap;
+    basic.forEach((it,i)=>{const bw=LEFT_W/3,bx=leftX+bw*i;if(i)hLine(bx,ly+10,bx,ly+66);ctx.font='800 14px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.fillText(it[0],bx+bw/2-20,ly+45);ctx.font='800 20px Arial';ctx.fillStyle='#2d4248';ctx.fillText(String(it[1]||'—'),bx+bw/2+32,ly+45);});ctx.textAlign='left';ly+=76+rowGap;
 
-    leftY=hSection(leftX,leftY,LEFT_W,'Star Powers',selectedStars.length?`${selectedStars.length} selected`:'');
-    if(selectedStars.length){
-      const cols=3,g=10,w=(LEFT_W-g*(cols-1))/cols;
-      for(let i=0;i<selectedStars.length;i++){
-        const row=Math.floor(i/cols),col=i%cols;const x=leftX+col*(w+g),yy=leftY+row*58;
-        hCard(x,yy,w,50,'#ffffff');
-        const item=selectedStars[i];const level=Number(item?.starLevel)||((String(item?.star||'').match(/★/g)||[]).length)||0;const label=(item?.kind==='rune'||level>=7)?'RUNE':`${level} ★`;
-        ctx.font=label==='RUNE'?'800 15px Arial':'800 19px Arial';ctx.fillStyle='#c49316';ctx.textAlign='center';ctx.fillText(label,x+w/2,yy+32);ctx.textAlign='left';
-      }
-      leftY+=Math.ceil(selectedStars.length/cols)*58;
-    }else{hCard(leftX,leftY,LEFT_W,50,'#ffffff');ctx.font='16px Arial';ctx.fillStyle='#71858a';ctx.fillText('—',leftX+18,leftY+32);leftY+=58;}
-    leftY+=rowGap;
+    ly=hSection(leftX,ly,LEFT_W,'Star Powers',selectedStars.length?`${selectedStars.length} selected`:'');
+    if(selectedStars.length){const cols=3,g=10,w=(LEFT_W-g*2)/3;for(let i=0;i<selectedStars.length;i++){const row=Math.floor(i/3),col=i%3,x=leftX+col*(w+g),yy=ly+row*58;hCard(x,yy,w,50);const item=selectedStars[i],level=Number(item?.starLevel)||((String(item?.star||'').match(/★/g)||[]).length)||0,label=(item?.kind==='rune'||level>=7)?'RUNE':`${level} ★`;ctx.font=label==='RUNE'?'800 15px Arial':'800 19px Arial';ctx.fillStyle='#c49316';ctx.textAlign='center';ctx.fillText(label,x+w/2,yy+32);ctx.textAlign='left';}ly+=Math.ceil(selectedStars.length/3)*58;}else{hCard(leftX,ly,LEFT_W,50);ctx.font='16px Arial';ctx.fillStyle='#71858a';ctx.fillText('—',leftX+18,ly+32);ly+=58;}ly+=rowGap;
 
-    leftY=hSection(leftX,leftY,LEFT_W,'Bonus Stars',selectedBonus.length?`${selectedBonus.length} selected`:'');
-    const bonusCols=Math.max(1,Math.ceil(Math.max(1,selectedBonus.length)/2));
-    if(selectedBonus.length){const g=10,w=(LEFT_W-g*(bonusCols-1))/bonusCols;for(let i=0;i<selectedBonus.length;i++){const row=Math.floor(i/bonusCols),col=i%bonusCols,x=leftX+col*(w+g),yy=leftY+row*52;hCard(x,yy,w,44,'#ffffff');ctx.font='800 21px Arial';ctx.fillStyle='#c49316';ctx.textAlign='center';ctx.fillText(String(selectedBonus[i].number),x+w/2,yy+29);ctx.textAlign='left';}leftY+=Math.ceil(selectedBonus.length/bonusCols)*52;}else{hCard(leftX,leftY,LEFT_W,44,'#ffffff');ctx.font='16px Arial';ctx.fillStyle='#71858a';ctx.fillText('—',leftX+18,leftY+29);leftY+=52;}leftY+=rowGap;
+    ly=hSection(leftX,ly,LEFT_W,'Bonus Stars',selectedBonus.length?`${selectedBonus.length} selected`:'');
+    if(selectedBonus.length){const g=10,w=(LEFT_W-g*(bonusCols-1))/bonusCols;for(let i=0;i<selectedBonus.length;i++){const row=Math.floor(i/bonusCols),col=i%bonusCols,x=leftX+col*(w+g),yy=ly+row*52;hCard(x,yy,w,44);ctx.font='800 21px Arial';ctx.fillStyle='#c49316';ctx.textAlign='center';ctx.fillText(String(selectedBonus[i].number),x+w/2,yy+29);ctx.textAlign='left';}ly+=Math.ceil(selectedBonus.length/bonusCols)*52;}else{hCard(leftX,ly,LEFT_W,44);ctx.font='16px Arial';ctx.fillStyle='#71858a';ctx.fillText('—',leftX+18,ly+29);ly+=52;}ly+=rowGap;
 
-    leftY=hSection(leftX,leftY,LEFT_W,'Relics',selectedRelics.length?`${selectedRelics.length} selected`:'');
-    if(selectedRelics.length){
-      for(let i=0;i<selectedRelics.length;i++){
-        const item=selectedRelics[i],rh=relicRowH(item);hCard(leftX,leftY,LEFT_W,rh,'#ffffff');
-        const cols=[56,66,170,110],descX=leftX+56+66+170+110+14,descW=LEFT_W-(56+66+170+110)-28;
-        let x=leftX;[56,66,170,110].forEach(c=>{x+=c;hLine(x,leftY+8,x,leftY+rh-8);});
-        ctx.font='800 17px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(i+1),leftX+28,leftY+rh/2);ctx.textBaseline='alphabetic';
-        await hImage(item.icon,leftX+56+6,leftY+(rh-54)/2,54);
-        ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';hWrap(item.name,leftX+56+66+12,leftY+30,146,19,3,'left');
-        const cat=relicCategory(item);ctx.font='800 11px Arial';ctx.fillStyle=rarityColor(cat);ctx.textAlign='center';ctx.fillText(String(cat||'').toUpperCase(),leftX+56+66+170+55,leftY+rh/2+4);ctx.textAlign='left';
-        ctx.font='16px Arial';ctx.fillStyle='#526a70';hWrap(item.desc,descX,leftY+28,descW,23,7,'left');
-        leftY+=rh+rowGap;
-      }
-    }else{hCard(leftX,leftY,LEFT_W,50,'#ffffff');ctx.font='16px Arial';ctx.fillStyle='#71858a';ctx.fillText('—',leftX+18,leftY+32);leftY+=58;}
+    ly=hSection(leftX,ly,LEFT_W,'Relics',selectedRelics.length?`${selectedRelics.length} selected`:'');
+    if(selectedRelics.length){for(let i=0;i<selectedRelics.length;i++){
+      const item=selectedRelics[i],rh=relicRowH(item);hCard(leftX,ly,LEFT_W,rh);
+      const cols=[56,66,170,110],descX=leftX+56+66+170+110+14,descW=LEFT_W-(56+66+170+110)-28;let xx=leftX;[56,66,170,110].forEach(c=>{xx+=c;hLine(xx,ly+8,xx,ly+rh-8);});
+      ctx.font='800 17px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(i+1),leftX+28,ly+rh/2);ctx.textBaseline='alphabetic';await hImage(item.icon,leftX+62,ly+(rh-54)/2,54);
+      ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';hWrap(item.name,leftX+134,ly+30,146,19,4);ctx.font='800 11px Arial';ctx.fillStyle=rarityColor(item.rarity);ctx.textAlign='center';ctx.fillText(String(item.rarity||'').toUpperCase(),leftX+347,ly+rh/2+4);ctx.textAlign='left';ctx.font='16px Arial';ctx.fillStyle='#526a70';hWrap(item.desc,descX,ly+28,descW,22,9);ly+=rh+rowGap;
+    }}else{hCard(leftX,ly,LEFT_W,50);ctx.font='16px Arial';ctx.fillStyle='#71858a';ctx.fillText('—',leftX+18,ly+32);ly+=58;}
 
-    if(selectedRune){
-      leftY+=rowGap;
-      leftY=hSection(leftX,leftY,LEFT_W,'Runes','1 selected');
-      const rh=relicRowH(selectedRune);hCard(leftX,leftY,LEFT_W,rh,'#ffffff');
-      const cols=[56,66,170,110],descX=leftX+56+66+170+110+14,descW=LEFT_W-(56+66+170+110)-28;let x=leftX;[56,66,170,110].forEach(c=>{x+=c;hLine(x,leftY+8,x,leftY+rh-8);});
-      ctx.font='800 17px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('1',leftX+28,leftY+rh/2);ctx.textBaseline='alphabetic';await hImage(selectedRune.icon,leftX+62,leftY+(rh-54)/2,54);ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';hWrap(selectedRune.name,leftX+134,leftY+30,146,19,3);ctx.font='800 11px Arial';ctx.fillStyle=rarityColor(selectedRune.rarity);ctx.textAlign='center';ctx.fillText(String(selectedRune.rarity||'').toUpperCase(),leftX+347,leftY+rh/2+4);ctx.textAlign='left';ctx.font='16px Arial';ctx.fillStyle='#526a70';hWrap(selectedRune.desc,descX,leftY+28,descW,23,7);leftY+=rh;
-    }
+    if(selectedRune){ly+=rowGap;ly=hSection(leftX,ly,LEFT_W,'Runes','1 selected');const rh=relicRowH(selectedRune);hCard(leftX,ly,LEFT_W,rh);const cols=[56,66,170,110],descX=leftX+56+66+170+110+14,descW=LEFT_W-(56+66+170+110)-28;let xx=leftX;[56,66,170,110].forEach(c=>{xx+=c;hLine(xx,ly+8,xx,ly+rh-8);});ctx.font='800 17px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('1',leftX+28,ly+rh/2);ctx.textBaseline='alphabetic';await hImage(selectedRune.icon,leftX+62,ly+(rh-54)/2,54);ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';hWrap(selectedRune.name,leftX+134,ly+30,146,19,4);ctx.font='800 11px Arial';ctx.fillStyle=rarityColor(selectedRune.rarity);ctx.textAlign='center';ctx.fillText(String(selectedRune.rarity||'').toUpperCase(),leftX+347,ly+rh/2+4);ctx.textAlign='left';ctx.font='16px Arial';ctx.fillStyle='#526a70';hWrap(selectedRune.desc,descX,ly+28,descW,22,9);ly+=rh;}
 
-    if(noteText){
-      leftY+=rowGap;leftY=hSection(leftX,leftY,LEFT_W,'Player Notes');const nh=Math.max(100,Math.min(360,48+descLines(noteText,90)*22));hCard(leftX,leftY,LEFT_W,nh,'#ffffff');ctx.font='16px Arial';ctx.fillStyle='#526a70';hWrap(noteText,leftX+18,leftY+29,LEFT_W-36,22,16);leftY+=nh;
-    }
+    if(noteText){ly+=rowGap;ly=hSection(leftX,ly,LEFT_W,'Player Notes');const nh=noteHeight(noteText);hCard(leftX,ly,LEFT_W,nh);ctx.font='16px Arial';ctx.fillStyle='#526a70';hWrap(noteText,leftX+18,ly+29,LEFT_W-36,22,18);ly+=nh;}
 
-    // Right column: Powers are always the rightmost content.
+    // RIGHT: Powers only. This column never shares space with the left column.
     let py=bodyTop;
     py=hSection(rightX,py,RIGHT_W,'Powers',selectedPowers.length?`${selectedPowers.length} selected`:'');
     if(selectedPowers.length){
       const displayItems=[...selectedPowers].reverse();
       for(let pi=0;pi<displayItems.length;pi++){
         showExportProgress(10+Math.round((pi/Math.max(1,displayItems.length))*78),'Rendering Powers (right column)...');
-        const item=displayItems[pi],rh=powerRowH(item);hCard(rightX,py,RIGHT_W,rh,'#ffffff');
+        const item=displayItems[pi],rh=powerRowH(item);hCard(rightX,py,RIGHT_W,rh);
         const orderLabel=powerOrderLabel(pi,displayItems.length);
+        // Top row: order + icon + name + rarity. Bottom row: description.
         ctx.font=orderLabel==='First Power'?'800 14px Arial':'800 17px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(orderLabel,rightX+48,py+34);ctx.textBaseline='alphabetic';
         await hImage(item.iconCandidates||item.icon,rightX+78,py+10,54);
-        ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';hWrap(item.name,rightX+144,py+29,RIGHT_W-166,19,2);
-        ctx.font='800 11px Arial';ctx.fillStyle=rarityColor(item.rarity);ctx.fillText(String(item.rarity||'').toUpperCase(),rightX+144,py+65);
-        hLine(rightX+16,py+78,rightX+RIGHT_W-16,py+78);
-        ctx.font='15px Arial';ctx.fillStyle='#526a70';hWrap(item.desc,rightX+18,py+104,RIGHT_W-36,22,7);
+        ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';const nameW=RIGHT_W-166;hWrap(item.name,rightX+144,py+29,nameW,19,4);ctx.font='800 11px Arial';ctx.fillStyle=rarityColor(item.rarity);ctx.fillText(String(item.rarity||'').toUpperCase(),rightX+144,py+67);
+        hLine(rightX+16,py+82,rightX+RIGHT_W-16,py+82);
+        ctx.font='15px Arial';ctx.fillStyle='#526a70';hWrap(item.desc,rightX+18,py+108,RIGHT_W-36,22,9);
         py+=rh+rowGap;
       }
-    }else{hCard(rightX,py,RIGHT_W,70,'#ffffff');ctx.font='16px Arial';ctx.fillStyle='#71858a';ctx.fillText('—',rightX+18,py+42);py+=82;}
+    }else{hCard(rightX,py,RIGHT_W,70);ctx.font='16px Arial';ctx.fillStyle='#71858a';ctx.fillText('—',rightX+18,py+42);py+=82;}
 
-    // Bottom footer spans the whole image so the two-column composition remains clean.
     const fy=H-46;hLine(P,fy,W-P,fy,'#c7d8d4',1);ctx.font='12px Arial';ctx.fillStyle='#71858a';ctx.textAlign='left';ctx.fillText('Image & data sources: League of Legends Wiki · Runeterra AR',P,fy+25);ctx.textAlign='right';ctx.fillText('made by penguinsgor',W-P,fy+25);ctx.textAlign='left';
 
     const filename=`LoR_PoC_${(state.champion||'Build').replace(/[^a-z0-9_-]+/gi,'_')}_Horizontal.png`;
@@ -4770,15 +4726,12 @@ async function exportPNGHorizontal(){
     let blob=null;
     if(typeof canvas.toBlob==='function')blob=await new Promise(resolve=>{try{canvas.toBlob(b=>resolve(b||null),'image/png')}catch(e){resolve(null)}});
     if(!blob||!blob.size){
-      let dataUrl='';try{dataUrl=canvas.toDataURL('image/png')}catch(e){throw new Error(`Canvas PNG encoding failed: ${e?.message||e}`)}
-      if(!dataUrl||dataUrl==='data:,')throw new Error('Browser could not encode the canvas as PNG.');
+      const dataUrl=canvas.toDataURL('image/png');
       const a=document.createElement('a');a.href=dataUrl;a.download=filename;a.rel='noopener';a.style.position='fixed';a.style.left='-9999px';a.style.width='1px';a.style.height='1px';document.body.appendChild(a);try{a.click()}finally{setTimeout(()=>a.remove(),2000)}
-      showExportProgress(100,`Download started: ${filename}`);
     }else{
-      showExportProgress(98,'Starting horizontal download...');
       const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=filename;a.rel='noopener';a.setAttribute('download',filename);a.style.position='fixed';a.style.left='-9999px';a.style.width='1px';a.style.height='1px';document.body.appendChild(a);try{a.click()}finally{setTimeout(()=>{a.remove();URL.revokeObjectURL(url)},3000)}
-      showExportProgress(100,`Download started: ${filename}`);
     }
+    showExportProgress(100,`Download started: ${filename}`);
   }catch(err){
     console.error('Horizontal PNG export failed:',err);
     showExportStatus('error',`Horizontal PNG export failed: ${err?.message||err}`);
@@ -4786,7 +4739,6 @@ async function exportPNGHorizontal(){
     btn.disabled=false;btn.textContent=old;
   }
 }
-
 
 function buildSelectedExportClone(){
   const app=document.querySelector('.app');
