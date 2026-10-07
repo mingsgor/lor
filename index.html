@@ -302,6 +302,31 @@ textarea{background:#fff!important;color:#30464c!important;border-color:#bdcfcb!
 .modal .rune-filter-rare{color:#91b9ff!important;border-color:#668dcc!important}
 .modal .rune-filter-epic{color:#c494f3!important;border-color:#9872bd!important}
 .modal .rune-filter-legendary{color:#f2aa62!important;border-color:#cf8545!important}
+
+/* v155: modal readability + unified Power/Rune rarity filters */
+.modal .option .relic-desc-cell,
+.modal .option .power-desc,
+.modal .option .rune-desc{
+  color:#d6e4e6!important;
+  font-size:13px!important;
+  font-weight:500!important;
+  line-height:1.5!important;
+  opacity:1!important;
+}
+.modal .power-filter{background:#203943!important;color:#d9e5e5!important;border-color:#58727a!important}
+.modal .power-filter.power-filter-all{color:#f3cf63!important;border-color:#c5a13d!important}
+.modal .power-filter.power-filter-common{color:#93d77a!important;border-color:#6fa85f!important}
+.modal .power-filter.power-filter-rare{color:#91b9ff!important;border-color:#668dcc!important}
+.modal .power-filter.power-filter-epic{color:#c494f3!important;border-color:#9872bd!important}
+.modal .power-filter.power-filter-legendary{color:#f2aa62!important;border-color:#cf8545!important}
+.modal .power-filter.active.power-filter-all{background:#493e20!important;color:#ffe08a!important;border-color:#c5a13d!important}
+.modal .power-filter.active.power-filter-common{background:#28432a!important;color:#a9e58f!important;border-color:#6fa85f!important}
+.modal .power-filter.active.power-filter-rare{background:#263b5b!important;color:#a8c9ff!important;border-color:#668dcc!important}
+.modal .power-filter.active.power-filter-epic{background:#392b4d!important;color:#d5aff9!important;border-color:#9872bd!important}
+.modal .power-filter.active.power-filter-legendary{background:#4b3422!important;color:#ffc080!important;border-color:#cf8545!important}
+/* Relic rarity is singular in the selector and result rows. */
+.modal .relic-rarity-cell{font-weight:900!important}
+
 </style>
 </head>
 <body>
@@ -1247,14 +1272,14 @@ async function loadWikiRelicData(){
 function relicCategory(r){
   const raw=String(r?.wikiCategory||r?.rarity||r?.category||r?.tier||r?.type||'').trim().toLocaleLowerCase();
   if(raw.includes('signature') && raw.includes('epic'))return 'Signature Epics';
-  if(raw==='commons'||raw==='common'||raw.includes('common'))return 'Commons';
-  if(raw==='rares'||raw==='rare'||raw.includes('rare'))return 'Rares';
-  if(raw==='epics'||raw==='epic'||raw.includes('epic'))return 'Epics';
+  if(raw==='commons'||raw==='common'||raw.includes('common'))return 'Common';
+  if(raw==='rares'||raw==='rare'||raw.includes('rare'))return 'Rare';
+  if(raw==='epics'||raw==='epic'||raw.includes('epic'))return 'Epic';
   return '';
 }
 function relicCategoryClass(r){
   const c=relicCategory(r);
-  return c==='Commons'?'relic-common':c==='Rares'?'relic-rare':c==='Epics'?'relic-epic':c==='Signature Epics'?'relic-signature':'';
+  return c==='Common'?'relic-common':c==='Rare'?'relic-rare':c==='Epic'?'relic-epic':c==='Signature Epics'?'relic-signature':'';
 }
 
 function powerRarity(r){const raw=String(r?.rarity||r?.wikiRarity||'').trim().toLocaleLowerCase();if(raw==='common'||raw==='commons')return 'Common';if(raw==='rare'||raw==='rares')return 'Rare';if(raw==='epic'||raw==='epics')return 'Epic';if(raw==='legendary'||raw==='legendaries')return 'Legendary';if(raw==='special'||raw==='specials')return 'Special';return normalizeName(r?.rarity||'');}
@@ -3372,9 +3397,9 @@ function normalizeRelicFilter(v){
   const raw=String(v||'').trim().toLocaleLowerCase();
   if(!raw||raw==='all')return 'ALL';
   if(raw.includes('signature')&&raw.includes('epic'))return 'SIGNATURE EPICS';
-  if(raw.includes('common'))return 'COMMONS';
-  if(raw.includes('rare'))return 'RARES';
-  if(raw.includes('epic'))return 'EPICS';
+  if(raw.includes('common'))return 'COMMON';
+  if(raw.includes('rare'))return 'RARE';
+  if(raw.includes('epic'))return 'EPIC';
   return '';
 }
 function normalizePowerFilter(v){
@@ -3406,9 +3431,9 @@ function renderRelicFilters(){
   if(modalType==='rune'){renderRuneFilters();return;}
   if(modalType!=='relic'){box.innerHTML='';box.style.display='none';return;}
   box.style.display='flex';
-  const filters=['ALL','COMMONS','RARES','EPICS','SIGNATURE EPICS'];
+  const filters=['ALL','COMMON','RARE','EPIC','SIGNATURE EPICS'];
   box.innerHTML=filters.map(f=>{
-    const cls=f==='ALL'?'relic-filter-all':f==='COMMONS'?'relic-filter-common':f==='RARES'?'relic-filter-rare':f==='EPICS'?'relic-filter-epic':f==='SIGNATURE EPICS'?'relic-filter-signature':'';
+    const cls=f==='ALL'?'relic-filter-all':f==='COMMON'?'relic-filter-common':f==='RARE'?'relic-filter-rare':f==='EPIC'?'relic-filter-epic':f==='SIGNATURE EPICS'?'relic-filter-signature':'';
     return `<button type="button" class="relic-filter ${cls} ${relicFilter===f?'active':''}" onclick="setRelicFilter('${f}')">${f}</button>`;
   }).join('');
 }
