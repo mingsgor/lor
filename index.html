@@ -3808,6 +3808,17 @@ function clearExportProgress(){
   box.innerHTML='';
   box.textContent='';
 }
+// v160: shared rarity palette used by BOTH vertical and horizontal PNG exports.
+// Keep this at top-level: vertical export calls it too.
+function exportRarityPalette(r){
+  const s=String(r||'').trim();
+  if(/legendary/i.test(s))return {fill:'#fff0df',accent:'#c46c19',text:'#8b551c'};
+  if(/epic|signature/i.test(s))return {fill:'#f0e8f8',accent:'#7950a8',text:'#624080'};
+  if(/rare/i.test(s))return {fill:'#e7effc',accent:'#3f6fb2',text:'#31598f'};
+  if(/common/i.test(s))return {fill:'#e8f4e4',accent:'#4d8d43',text:'#35672f'};
+  return {fill:'#ffffff',accent:'#71858a',text:'#526a70'};
+}
+
 async function exportPNGManualFallback(){
   const btn=document.querySelector('.export-primary');
   exportImageCache.clear();
