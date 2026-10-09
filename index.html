@@ -160,6 +160,11 @@ input[type="search"]::-webkit-search-cancel-button{display:none;-webkit-appearan
   .modal-box>.search{font-size:16px!important}
   body{overflow-x:hidden;overscroll-behavior-x:none}
 }
+
+/* v161: expose the Wiki Star Power title (third data column) in the editor. */
+.star{height:auto;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:10px 24px;box-sizing:border-box}
+.star .star-power-name{display:block;max-width:100%;font-size:11px;line-height:1.2;font-weight:700;color:var(--text);text-align:center;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+@media(max-width:620px){.star{min-height:78px;padding:10px 7px;gap:4px}.star .star-power-name{font-size:10px;line-height:1.15}}
 </style>
 
 <style id="light-theme-v153">
@@ -333,6 +338,7 @@ textarea{background:#fff!important;color:#30464c!important;border-color:#bdcfcb!
 .modal .relic-rarity-cell{font-weight:900!important}
 
 </style>
+<!-- v161: Adventure type labels + Star Power titles in editor and exports -->
 </head>
 <body>
 <div class="app">
@@ -3152,6 +3158,24 @@ function getAdventureList(category){
   }
   return rows;
 }
+function getAdventureTypeLabel(){
+  const cat=state.adventureCategory||'World Adventures';
+  if(cat==='Event Campaigns'){
+    const groups=getEventAdventureGroups();
+    const selected=normalizeName(state.adventure).toLocaleLowerCase();
+    const group=groups.find(g=>g.rows.some(r=>normalizeName(r?.name).toLocaleLowerCase()===selected));
+    return group?.name||'Event Campaigns';
+  }
+  return cat;
+}
+function renderAdventureTypeStatus(count=null){
+  const status=el('adventureStatus');
+  if(!status)return;
+  const type=getAdventureTypeLabel();
+  if(state.adventureCategory==='Other')status.textContent=`Type: ${type} · enter an adventure name`;
+  else if(count!==null)status.textContent=`Type: ${type} · ${count} adventures`;
+  else status.textContent=`Type: ${type}`;
+}
 function renderAdventureOptions(){
   const cat=state.adventureCategory||'World Adventures',select=el('adventureSelect'),input=el('adventureInput'),dl=el('adventureList');
   if(!select||!input)return;
@@ -3169,7 +3193,7 @@ function renderAdventureOptions(){
     select.value=ADVENTURE_OTHER_VALUE;
     el('adventureDifficulty').textContent='—';
     const status=el('adventureStatus');
-    if(status)status.textContent='Other · enter an adventure name';
+    if(status)status.textContent=`Type: Other · enter an adventure name`;
     return;
   }
   if(cat==='Event Campaigns'){
@@ -3192,7 +3216,7 @@ function renderAdventureOptions(){
   else {select.value='';if(!state.adventure)input.value='';updateAdventureInputClear();el('adventureDifficulty').textContent=state.adventureDifficulty||'—'}
   const status=el('adventureStatus');
   const label=cat;
-  if(status)status.textContent=list.length?`${list.length} adventures · ${label}`:'No adventures found for this category';
+  if(status)status.textContent=list.length?`Type: ${getAdventureTypeLabel()} · ${list.length} adventures`:`Type: ${getAdventureTypeLabel()} · No adventures found for this category`;
 }
 
 function setAdventureCategory(cat){
@@ -3221,6 +3245,7 @@ function setAdventure(name){
     if(select)select.value=ADVENTURE_OTHER_VALUE;
     if(input && input.value!==clean)input.value=clean;
     if(diff)diff.textContent='—';
+    renderAdventureTypeStatus();
     return;
   }
   if(name===ADVENTURE_OTHER_VALUE || clean.toLocaleLowerCase()==='other'){
@@ -3235,6 +3260,7 @@ function setAdventure(name){
   const found=list.find(a=>a.name.toLocaleLowerCase()===clean.toLocaleLowerCase())||list.find(a=>a.name.toLocaleLowerCase().startsWith(clean.toLocaleLowerCase()));
   state.adventure=found?.name||clean;state.adventureDifficulty=found?.difficulty||'';
   if(select)select.value=found?.name||'';if(input)input.value=found?.name||clean;if(diff)diff.textContent=found?.difficulty||'—';
+  renderAdventureTypeStatus();
 }
 
 function syncBuildStatsInputs(){
@@ -3251,7 +3277,7 @@ function initBuildStatsUI(){
   syncBuildStatsInputs();
 }
 function updateAdventureInputClear(){const input=el('adventureInput'),clear=el('adventureInputClear');if(clear)clear.classList.toggle('show',!!String(input?.value||''));}
-function clearAdventureInput(){const input=el('adventureInput');if(!input)return;input.value='';state.adventure='';state.adventureDifficulty='';const select=el('adventureSelect');if(select)select.value='';const diff=el('adventureDifficulty');if(diff)diff.textContent='—';updateAdventureInputClear();input.focus();}
+function clearAdventureInput(){const input=el('adventureInput');if(!input)return;input.value='';state.adventure='';state.adventureDifficulty='';const select=el('adventureSelect');if(select)select.value='';const diff=el('adventureDifficulty');if(diff)diff.textContent='—';updateAdventureInputClear();renderAdventureTypeStatus();input.focus();}
 function initAdventureUI(){
   const cat=el('adventureCategory'),select=el('adventureSelect'),input=el('adventureInput'),clear=el('adventureInputClear');
   if(cat)cat.addEventListener('change',()=>setAdventureCategory(cat.value));
@@ -3300,7 +3326,8 @@ function renderStars(){
     const marker=isRune
       ? `<div class="stars star-level-display rune-text" title="Rune" aria-label="Rune">RUNE</div>`
       : `<div class="stars star-level-display" title="${level} Star${level===1?'':'s'}" aria-label="${level} Star${level===1?'':'s'}"><span class="star-number">${level}</span><span class="star-symbol">★</span></div>`;
-    return `<label class="star">${marker}<input class="check" type="checkbox" ${state.stars.has(i)?'checked':''} onchange="toggleSet('stars',${i},this.checked)" aria-label="${isRune?'Rune':'Star Power '+level}"></label>`;
+    const powerName=normalizeName(s?.name||'');
+    return `<label class="star" title="${esc(powerName|| (isRune?'Rune Star':`Star ${level}`))}">${marker}${powerName?`<span class="star-power-name">${esc(powerName)}</span>`:''}<input class="check" type="checkbox" ${state.stars.has(i)?'checked':''} onchange="toggleSet('stars',${i},this.checked)" aria-label="${esc(powerName|| (isRune?'Rune':'Star Power '+level))}"></label>`;
   }).join('');
 }
 function getBonusColumnCount(count){
@@ -3931,7 +3958,7 @@ async function exportPNGManualFallback(){
     H += 178;                 // header
     H += 64 + 12;             // Adventure (always shown)
     H += 18 + 52 + 58;         // Level / Health / Regen (single line)
-    H += 18 + 52 + (selectedStars.length ? Math.ceil(selectedStars.length/4)*68 : 72);
+    H += 18 + 52 + (selectedStars.length ? Math.ceil(selectedStars.length/4)*90 : 72);
     H += 18 + 52 + (selectedBonus.length ? Math.ceil(selectedBonus.length/Math.max(1,Math.ceil(selectedBonus.length/2)))*58 : 60);
     H += 18 + 52 + (selectedRelics.length ? exportTableRowsH(selectedRelics) : 72);
     if(selectedRune) H += 18 + 52 + exportTableRowsH([selectedRune],44,28,92,6);
@@ -4159,6 +4186,10 @@ async function exportPNGManualFallback(){
       ctx.fillStyle='#d9ad2f';
       ctx.textAlign='left';
       ctx.fillText(state.adventureDifficulty||'—',advNameX+advNameWidth+18,y+39);
+      const typeLabel=getAdventureTypeLabel();
+      ctx.font='800 12px Arial';ctx.fillStyle='#2d4248';ctx.textAlign='right';
+      ctx.fillText(typeLabel,W-P-18,y+39);
+      ctx.textAlign='left';
       y+=adventureH+12;
     }
 
@@ -4293,7 +4324,7 @@ async function exportPNGManualFallback(){
       const starW=(innerW-starGap*(starCols-1))/starCols;
       for(let row=0;row<Math.ceil(selectedStars.length/starCols);row++){
         const rowItems=selectedStars.slice(row*starCols,row*starCols+starCols);
-        const rowH=58;
+        const rowH=80;
         rowItems.forEach((item,col)=>{
           const sx=P+col*(starW+starGap);
           posterRow(sx,y,starW,rowH);
@@ -4302,10 +4333,15 @@ async function exportPNGManualFallback(){
           ctx.font=starLabel==='RUNE'?'800 15px Arial':'800 18px Arial';
           ctx.fillStyle='#d9ad2f';
           ctx.textAlign='center';
-          ctx.fillText(starLabel,sx+starW/2,y+36);
+          ctx.fillText(starLabel,sx+starW/2,y+29);
+          const powerName=normalizeName(item?.name||'');
+          if(powerName){
+            ctx.font='700 12px Arial';ctx.fillStyle='#2d4248';
+            wrapTextCentered(ctx,powerName,sx+starW/2,y+48,starW-16,15,2);
+          }
           ctx.textAlign='left';
         });
-        y+=68;
+        y+=90;
       }
     }else{
       posterRow(P,y,innerW,62);
@@ -4674,7 +4710,7 @@ async function exportPNGHorizontal(){
     let leftY=bodyTop;
     leftY+=62+72+rowGap;
     leftY+=62+72+rowGap;
-    leftY+=62+(selectedStars.length?Math.ceil(selectedStars.length/3)*54:54)+rowGap;
+    leftY+=62+(selectedStars.length?Math.ceil(selectedStars.length/3)*(72+rowGap):72)+rowGap;
     const bonusRows=selectedBonus.length?Math.ceil(selectedBonus.length/5):1;
     leftY+=62+bonusRows*50+rowGap;
     leftY+=62+(selectedRelics.length?selectedRelics.reduce((sum,it)=>sum+relicRowH(it)+rowGap,0):54)+rowGap;
@@ -4765,6 +4801,7 @@ async function exportPNGHorizontal(){
     ctx.font='800 13px Arial';ctx.fillStyle='#71858a';ctx.fillText('Adventure',leftX+18,ly+28);
     ctx.font='800 18px Arial';ctx.fillStyle='#2d4248';hWrap(adventureName,leftX+120,ly+30,LEFT_W-150,22,2);
     ctx.font='800 13px Arial';ctx.fillStyle='#8a6a0d';ctx.fillText(state.adventureDifficulty||'—',leftX+120,ly+57);
+    ctx.font='800 12px Arial';ctx.fillStyle='#2d4248';ctx.textAlign='right';ctx.fillText(getAdventureTypeLabel(),leftX+LEFT_W-16,ly+30);ctx.textAlign='left';
     ly+=72+rowGap;
 
     ly=hSection(leftX,ly,LEFT_W,'Basic');
@@ -4784,14 +4821,17 @@ async function exportPNGHorizontal(){
     ly=hSection(leftX,ly,LEFT_W,'Star Powers');
     const starRows=Math.max(1,Math.ceil(Math.max(1,selectedStars.length)/3));
     for(let sr=0;sr<starRows;sr++){
-      const sh=54;hCard(leftX,ly,LEFT_W,sh);
+      const sh=72;hCard(leftX,ly,LEFT_W,sh);
       const count=Math.min(3,selectedStars.length-sr*3)||0;
       if(count){
         for(let j=0;j<count;j++){
           if(j)hLine(leftX+(LEFT_W/count)*j,ly+8,leftX+(LEFT_W/count)*j,ly+sh-8);
           const item=selectedStars[sr*3+j];
           const label=(item?.kind==='rune'||Number(item?.starLevel)>=7)?'RUNE':(`${item?.starLevel||item?.star||''}`.trim().replace(/\s+/g,' ')+' ★');
-          ctx.font='800 18px Arial';ctx.fillStyle='#c28d0b';ctx.textAlign='center';ctx.fillText(label,leftX+(LEFT_W/count)*(j+.5),ly+34);
+          const cx=leftX+(LEFT_W/count)*(j+.5);
+          ctx.font='800 18px Arial';ctx.fillStyle='#c28d0b';ctx.textAlign='center';ctx.fillText(label,cx,ly+27);
+          const powerName=normalizeName(item?.name||'');
+          if(powerName){ctx.font='700 11px Arial';ctx.fillStyle='#2d4248';wrapTextCentered(ctx,powerName,cx,ly+43,(LEFT_W/count)-18,13,2);}
         }
         ctx.textAlign='left';
       }else{ctx.font='16px Arial';ctx.fillStyle='#71858a';ctx.fillText('—',leftX+18,ly+34);}
