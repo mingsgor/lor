@@ -4257,7 +4257,7 @@ async function exportPNGManualFallback(){
       ctx.fillText('Adventure',P+31,y+39);
       ctx.font='800 19px Arial';
       ctx.fillStyle='#2d4248';
-      const advNameX=P+160;
+      const advNameX=P+184;
       const advLabel=adventureName||'—';
       ctx.fillText(advLabel,advNameX,y+39);
       // Keep the adventure star count close to the adventure name instead of
@@ -4266,7 +4266,7 @@ async function exportPNGManualFallback(){
       ctx.font='800 15px Arial';
       ctx.fillStyle='#d9ad2f';
       ctx.textAlign='left';
-      ctx.fillText(state.adventureDifficulty||'—',advNameX+advNameWidth+18,y+39);
+      ctx.fillText(state.adventureDifficulty||'—',advNameX+advNameWidth+26,y+39);
       const typeLabel=getAdventureTypeLabel();
       ctx.font='800 12px Arial';ctx.fillStyle='#2d4248';ctx.textAlign='right';
       ctx.fillText(typeLabel,W-P-18,y+39);
@@ -4862,10 +4862,13 @@ async function exportPNGHorizontal(){
     }
     ctx.font='800 26px Arial';ctx.fillStyle='#2d4248';
     const champName=state.champion||'Unknown Champion';
-    hWrap(champName,champX+cSize+16,champY+25,230,29,2,'left');
+    const champNameX=champX+cSize+16;
+    const champNameW=300;
+    hWrap(champName,champNameX,champY+25,champNameW,29,2,'left');
     const rSize=38,rGap=8;
-    let rx=champX+cSize+16+Math.min(230,Math.max(120,mctx.measureText(champName).width))+18;
-    if(rx+rSize>rightX-18)rx=champX+cSize+16+150;
+    // Reserve the full champion-name block before placing region icons. This avoids
+    // Spirit Blossom dual-region icons overlapping long champion names.
+    let rx=champNameX+champNameW+18;
     for(const rName of championRegions){
       const rData=DATA.regions.find(r=>r.name===rName),rImg=await safeImage(rData?.img);
       if(rImg){
@@ -4880,8 +4883,8 @@ async function exportPNGHorizontal(){
     ly=hSection(leftX,ly,LEFT_W,'Adventure');
     hCard(leftX,ly,LEFT_W,72);
     ctx.font='800 15px Arial';ctx.fillStyle='#71858a';ctx.fillText('Adventure',leftX+18,ly+28);
-    ctx.font='800 20px Arial';ctx.fillStyle='#2d4248';hWrap(adventureName,leftX+120,ly+30,LEFT_W-150,24,2);
-    ctx.font='800 15px Arial';ctx.fillStyle='#8a6a0d';ctx.fillText(state.adventureDifficulty||'—',leftX+120,ly+57);
+    ctx.font='800 20px Arial';ctx.fillStyle='#2d4248';hWrap(adventureName,leftX+148,ly+30,LEFT_W-178,24,2);
+    ctx.font='800 15px Arial';ctx.fillStyle='#8a6a0d';ctx.fillText(state.adventureDifficulty||'—',leftX+148,ly+57);
     ctx.font='800 12px Arial';ctx.fillStyle='#2d4248';ctx.textAlign='right';ctx.fillText(getAdventureTypeLabel(),leftX+LEFT_W-16,ly+30);ctx.textAlign='left';
     ly+=72+rowGap;
 
@@ -4956,9 +4959,9 @@ async function exportPNGHorizontal(){
       const cols=[56,66,relicNameW,100];let xx=leftX;cols.forEach(c=>{xx+=c;hLine(xx,ly+8,xx,ly+rh-8);});
       ctx.font='800 16px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('1',leftX+28,ly+rh/2);ctx.textBaseline='alphabetic';
       await hImage(selectedRune.icon,leftX+63,ly+(rh-52)/2,52,8);
-      ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';hWrap(selectedRune.name,leftX+130,ly+27,relicNameW-12,20,4);
+      ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';hWrap(selectedRune.name,leftX+56+66+relicNameW/2,ly+27,relicNameW-12,20,4,'center');
       ctx.font='800 11px Arial';ctx.fillStyle=palette.accent;ctx.textAlign='center';ctx.fillText(String(selectedRune.rarity||'').toUpperCase(),leftX+56+66+relicNameW+50,ly+rh/2+4);ctx.textAlign='left';
-      ctx.font='16px Arial';ctx.fillStyle='#526a70';hWrap(selectedRune.desc,leftX+56+66+relicNameW+100+12,ly+27,relicDescW,22,7);ly+=rh;
+      ctx.font='16px Arial';ctx.fillStyle='#526a70';hWrap(selectedRune.desc,leftX+56+66+relicNameW+100+12+relicDescW/2,ly+27,relicDescW,22,7,'center');ly+=rh;
     }
 
     if(noteText){
