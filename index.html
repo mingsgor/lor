@@ -4763,12 +4763,14 @@ async function exportPNGHorizontal(){
     function relicRarityColor(r){return exportRarityPalette(relicCategory({rarity:String(r||'')})||String(r||'')).accent;}
     function rarityColor(r){return exportRarityPalette(r).accent;}
 
-    const relicNameW=166;
-    const relicDescW=Math.max(240,LEFT_W-(56+66+relicNameW+100)-26);
+    // Relics and Runes use the same five-column grid as Powers, scaled to the left panel width.
+    const relicCols=[LEFT_W*.12,LEFT_W*.14,LEFT_W*.24,LEFT_W*.16,LEFT_W*.34];
+    const relicNameW=relicCols[2]-14;
+    const relicDescW=relicCols[4]-16;
     function relicRowH(item){
-      const n=lineCount(item.name,'800 16px Arial',relicNameW-12,4);
+      const n=lineCount(item.name,'800 16px Arial',relicNameW,4);
       const d=lineCount(item.desc,'16px Arial',relicDescW,7);
-      return Math.max(84,Math.max(58+n*20,34+d*22));
+      return Math.max(64,Math.max(34+n*18,26+d*18)+18);
     }
 
     // Horizontal Powers use the same five-column structure as the preview:
@@ -4940,28 +4942,34 @@ async function exportPNGHorizontal(){
     if(selectedRelics.length){
       for(let ri=0;ri<selectedRelics.length;ri++){
         const item=selectedRelics[ri],rh=relicRowH(item),palette=exportRarityPalette(item.rarity);hCard(leftX,ly,LEFT_W,rh,palette.fill);
-        const cols=[56,66,relicNameW,100];
-        let xx=leftX;
-        cols.forEach(c=>{xx+=c;hLine(xx,ly+8,xx,ly+rh-8);});
-        ctx.font='800 16px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(ri+1),leftX+28,ly+rh/2);ctx.textBaseline='alphabetic';
-        await hImage(item.icon,leftX+56+(66-52)/2,ly+(rh-52)/2,52,8);
-        ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';hWrap(item.name,leftX+56+66+relicNameW/2,ly+27,relicNameW-12,20,4,'center');
-        const rarity=String(relicCategory({rarity:item.rarity})||item.rarity||'').trim();
-        ctx.font='800 11px Arial';ctx.fillStyle=palette.accent;ctx.textAlign='center';ctx.fillText(rarity.toUpperCase(),leftX+56+66+relicNameW+50,ly+rh/2+4);ctx.textAlign='left';
-        ctx.font='16px Arial';ctx.fillStyle='#526a70';hWrap(item.desc,leftX+56+66+relicNameW+100+12+relicDescW/2,ly+27,relicDescW,22,7,'center');
+        let xx=leftX;for(let ci=0;ci<relicCols.length-1;ci++){xx+=relicCols[ci];hLine(xx,ly+6,xx,ly+rh-6);}
+        ctx.font='800 13px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(ri+1),leftX+relicCols[0]/2,ly+rh/2);ctx.textBaseline='alphabetic';
+        await hImage(item.icon,leftX+relicCols[0]+(relicCols[1]-38)/2,ly+(rh-38)/2,38,8);
+        ctx.font='800 13px Arial';ctx.fillStyle='#2d4248';
+        const nameX=leftX+relicCols[0]+relicCols[1]+relicCols[2]/2;
+        const nameLines=getWrappedLines(ctx,item.name||'',relicNameW,4);wrapTextCentered(ctx,item.name||'',nameX,ly+rh/2-(nameLines.length*16)/2+12,relicNameW,16,4);
+        ctx.font='800 8px Arial';ctx.fillStyle=palette.accent;
+        const rarityX=leftX+relicCols[0]+relicCols[1]+relicCols[2]+relicCols[3]/2;
+        wrapTextCentered(ctx,String(relicCategory({rarity:item.rarity})||item.rarity||'').toUpperCase(),rarityX,ly+rh/2-4,relicCols[3]-6,10,2);
+        ctx.font='11px Arial';ctx.fillStyle='#526a70';
+        const descX=leftX+relicCols[0]+relicCols[1]+relicCols[2]+relicCols[3]+relicCols[4]/2;
+        const descLines=getWrappedLines(ctx,item.desc||'',relicDescW,7);wrapTextCentered(ctx,item.desc||'',descX,ly+rh/2-(descLines.length*13)/2+10,relicDescW,13,7);
         ly+=rh+rowGap;
       }
     }else{hCard(leftX,ly,LEFT_W,54);ctx.font='16px Arial';ctx.fillStyle='#71858a';ctx.fillText('—',leftX+18,ly+34);ly+=64;}
 
     if(selectedRune){
       ly+=rowGap;ly=hSection(leftX,ly,LEFT_W,'Runes');
-      const rh=relicRowH(selectedRune),palette=exportRarityPalette(selectedRune.rarity);hCard(leftX,ly,LEFT_W,rh,palette.fill);
-      const cols=[56,66,relicNameW,100];let xx=leftX;cols.forEach(c=>{xx+=c;hLine(xx,ly+8,xx,ly+rh-8);});
-      ctx.font='800 16px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('1',leftX+28,ly+rh/2);ctx.textBaseline='alphabetic';
-      await hImage(selectedRune.icon,leftX+63,ly+(rh-52)/2,52,8);
-      ctx.font='800 16px Arial';ctx.fillStyle='#2d4248';hWrap(selectedRune.name,leftX+56+66+relicNameW/2,ly+27,relicNameW-12,20,4,'center');
-      ctx.font='800 11px Arial';ctx.fillStyle=palette.accent;ctx.textAlign='center';ctx.fillText(String(selectedRune.rarity||'').toUpperCase(),leftX+56+66+relicNameW+50,ly+rh/2+4);ctx.textAlign='left';
-      ctx.font='16px Arial';ctx.fillStyle='#526a70';hWrap(selectedRune.desc,leftX+56+66+relicNameW+100+12+relicDescW/2,ly+27,relicDescW,22,7,'center');ly+=rh;
+      const item=selectedRune,rh=relicRowH(item),palette=exportRarityPalette(item.rarity);hCard(leftX,ly,LEFT_W,rh,palette.fill);
+      let xx=leftX;for(let ci=0;ci<relicCols.length-1;ci++){xx+=relicCols[ci];hLine(xx,ly+6,xx,ly+rh-6);}
+      ctx.font='800 13px Arial';ctx.fillStyle='#71858a';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('1',leftX+relicCols[0]/2,ly+rh/2);ctx.textBaseline='alphabetic';
+      await hImage(item.icon,leftX+relicCols[0]+(relicCols[1]-38)/2,ly+(rh-38)/2,38,8);
+      ctx.font='800 13px Arial';ctx.fillStyle='#2d4248';const nameX=leftX+relicCols[0]+relicCols[1]+relicCols[2]/2;
+      const nameLines=getWrappedLines(ctx,item.name||'',relicNameW,4);wrapTextCentered(ctx,item.name||'',nameX,ly+rh/2-(nameLines.length*16)/2+12,relicNameW,16,4);
+      ctx.font='800 8px Arial';ctx.fillStyle=palette.accent;const rarityX=leftX+relicCols[0]+relicCols[1]+relicCols[2]+relicCols[3]/2;
+      wrapTextCentered(ctx,String(item.rarity||'').toUpperCase(),rarityX,ly+rh/2-4,relicCols[3]-6,10,2);
+      ctx.font='11px Arial';ctx.fillStyle='#526a70';const descX=leftX+relicCols[0]+relicCols[1]+relicCols[2]+relicCols[3]+relicCols[4]/2;
+      const descLines=getWrappedLines(ctx,item.desc||'',relicDescW,7);wrapTextCentered(ctx,item.desc||'',descX,ly+rh/2-(descLines.length*13)/2+10,relicDescW,13,7);ly+=rh;
     }
 
     if(noteText){
@@ -5013,8 +5021,7 @@ async function exportPNGHorizontal(){
 
     const fy=H-44;
     hLine(P,fy,W-P,fy,'#c7d8d4',1);
-    ctx.font='12px Arial';ctx.fillStyle='#71858a';ctx.textAlign='left';ctx.fillText('Image & data sources: League of Legends Wiki · Runeterra AR',P,fy+23);
-    ctx.textAlign='right';ctx.fillText('made by penguinsgor',W-P,fy+23);ctx.textAlign='left';
+    ctx.font='12px Arial';ctx.fillStyle='#71858a';ctx.textAlign='right';ctx.fillText('made by penguinsgor',W-P,fy+23);ctx.textAlign='left';
 
     const filename=`LoR_PoC_${(state.champion||'Build').replace(/[^a-z0-9_-]+/gi,'_')}_Horizontal.png`;
     showExportProgress(92,'Encoding horizontal PNG...');
