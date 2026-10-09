@@ -178,6 +178,16 @@ input[type="search"]::-webkit-search-cancel-button{display:none;-webkit-appearan
   #runeSlots .rune-row .rune-desc{grid-column:1 / -1;grid-row:3;width:100%;box-sizing:border-box;min-width:0;font-size:11px;line-height:1.5;padding:7px 4px 2px;white-space:normal;overflow:visible;overflow-wrap:anywhere;word-break:break-word;border-top:1px solid rgba(72,130,166,.22);margin-top:2px}
   #runeSlots .rune-row .danger{position:absolute;right:5px;top:5px;z-index:3}
 }
+
+.selected-relic-slot .selected-relic-up,.selected-relic-slot .selected-relic-down{position:absolute;bottom:-1px;width:18px;height:18px;padding:0;border-radius:50%;font-size:15px;line-height:14px;background:#10263b;color:#dcecff;border:1px solid #46647f;z-index:3;cursor:pointer}
+.selected-relic-slot .selected-relic-up{left:-3px}.selected-relic-slot .selected-relic-down{right:-3px}
+.selected-relic-slot .selected-relic-up:disabled,.selected-relic-slot .selected-relic-down:disabled{opacity:.3;cursor:default}
+@media(max-width:620px){.selected-relic-slot .selected-relic-up,.selected-relic-slot .selected-relic-down{display:none}}
+.selected-relic-slot .selected-relic-up,.selected-relic-slot .selected-relic-down{background:#eef5f3!important;color:#526a70!important;border-color:#a9bcb9!important}
+#exportCapture .export-adventure-tools{display:flex!important;align-items:center;justify-content:center!important;gap:12px!important;width:100%!important;margin:0!important;text-align:center!important}
+#exportCapture .export-selected-value{justify-content:center!important;text-align:center!important;min-width:0!important;flex:1 1 0!important}
+#exportCapture .export-selected-value.export-difficulty{flex:0 0 150px!important}
+
 </style>
 
 <style id="light-theme-v153">
@@ -3528,8 +3538,10 @@ function renderSelectedRelics(){
     if(!r)return '';
     return `<div class="selected-relic-slot" draggable="true" data-selected-relic-slot="${n}" title="Drag to reorder: ${esc(r.name)}" ondragstart="startSelectedRelicDrag(${n},event)" ondragover="allowSelectedRelicDrop(event)" ondrop="dropSelectedRelic(${n},event)" ondragend="endSelectedRelicDrag()">
       <span class="selected-relic-order">${n+1}</span>
-      <img src="${esc(r.icon)}" alt="${esc(relicDisplayName(r))}" loading="lazy" onerror="this.style.display='none'">
+      <img src="${esc(r.icon)}" alt="${esc(relicDisplayName(r))}" loading="eager" onerror="this.dataset.failed='1';this.style.display='none'">
       <button type="button" class="selected-relic-remove" onclick="removeSelectedRelic(${n},event)" aria-label="Remove ${esc(r.name)}">×</button>
+      <button type="button" class="selected-relic-up" onclick="moveSelectedRelic(${n},-1,event)" aria-label="Move ${esc(r.name)} left" ${n===0?'disabled':''}>‹</button>
+      <button type="button" class="selected-relic-down" onclick="moveSelectedRelic(${n},1,event)" aria-label="Move ${esc(r.name)} right" ${n===state.relics.length-1?'disabled':''}>›</button>
     </div>`;
   }).join('');
   box.innerHTML=`<span class="selected-relic-label">Selected Relics</span>${cards}<span class="selected-relic-hint">Drag icons to reorder · × to remove</span>`;
@@ -3539,6 +3551,14 @@ function startSelectedRelicDrag(n,e){selectedRelicDragIndex=n;e?.dataTransfer?.s
 function allowSelectedRelicDrop(e){e.preventDefault();if(e.dataTransfer)e.dataTransfer.dropEffect='move'}
 function dropSelectedRelic(n,e){e.preventDefault();const from=selectedRelicDragIndex>=0?selectedRelicDragIndex:Number(e.dataTransfer?.getData('text/plain'));if(!Number.isInteger(from)||from<0||from>=state.relics.length||from===n){endSelectedRelicDrag();return}const [item]=state.relics.splice(from,1);state.relics.splice(n,0,item);endSelectedRelicDrag();renderRelics();renderSelectedRelics();renderModalOptions()}
 function endSelectedRelicDrag(){selectedRelicDragIndex=-1}
+function moveSelectedRelic(n,delta,e){
+  e?.preventDefault();e?.stopPropagation();
+  const to=n+delta;
+  if(n<0||n>=state.relics.length||to<0||to>=state.relics.length)return;
+  const [item]=state.relics.splice(n,1);
+  state.relics.splice(to,0,item);
+  renderRelics();renderSelectedRelics();renderModalOptions();renderSummary();
+}
 function removeSelectedRelic(n,e){e?.preventDefault();e?.stopPropagation();if(n<0||n>=state.relics.length)return;state.relics.splice(n,1);renderRelics();renderSelectedRelics();renderModalOptions();renderSummary()}
 
 function renderSelectedPowers(){
@@ -3854,8 +3874,10 @@ async function safeImage(src){
       const img=new Image();
       let done=false;
       const finish=v=>{if(done)return;done=true;clearTimeout(timer);resolve(v)};
-      const timer=setTimeout(()=>finish(null),1400);
+      const timer=setTimeout(()=>finish(null),6000);
       img.crossOrigin='anonymous';
+      img.referrerPolicy='no-referrer';
+      img.decoding='async';
       img.onload=()=>{
         try{
           const c=document.createElement('canvas');c.width=1;c.height=1;
@@ -3866,7 +3888,7 @@ async function safeImage(src){
       img.onerror=()=>finish(null);
       img.src=value;
     });
-    exportImageCache.set(value,result||null);
+    if(result)exportImageCache.set(value,result);
     if(result)return result;
   }
   return null;
@@ -5016,6 +5038,9 @@ function buildSelectedExportClone(){
   if(!app)throw new Error('Build page was not found.');
   const clone=app.cloneNode(true);
   clone.id='exportCapture';
+  // Keep the original source URLs on export images and eagerly request them so
+  // the portrait PNG capture has a better chance of including every icon.
+  clone.querySelectorAll('img').forEach(img=>{img.loading='eager';img.decoding='sync';img.crossOrigin='anonymous';});
   clone.querySelectorAll('.export-bar,#exportStatus,.footer-note,.modal').forEach(n=>n.remove());
 
   // Keep only the current Adventure selection and remove its editing controls.
