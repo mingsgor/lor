@@ -339,6 +339,7 @@ textarea{background:#fff!important;color:#30464c!important;border-color:#bdcfcb!
 
 </style>
 <!-- v161: Adventure type labels + Star Power titles in editor and exports -->
+<!-- v163: show MAX 1 only; enforce spreadsheet limits silently for multi-copy relics; unseen relics default to MAX 1. -->
 </head>
 <body>
 <div class="app">
@@ -2950,8 +2951,10 @@ async function loadRelicMaxAmountsFromSheet(){
   return limits.size;
 }
 function relicMaxAmount(r){
+  // The spreadsheet is authoritative for known relics. If a newly-added relic
+  // is missing from the sheet, default it to MAX 1 until the sheet is updated.
   const n=Number(r?.maxAmount);
-  return Number.isFinite(n)&&n>0?Math.floor(n):3;
+  return Number.isFinite(n)&&n>0?Math.floor(n):1;
 }
 function relicSelectedCount(index){
   const target=DATA.relics?.[index]; if(!target)return 0;
@@ -3368,7 +3371,7 @@ function renderRelics(){
     const catClass=relicCategoryClass(r);
     const max=relicMaxAmount(r);
     const used=relicSelectedCount(idx);
-    const limitText=Number(r?.maxAmount)>0?`<span class="relic-selected-limit">Max ${max} · ${used}/${max}</span>`:'';
+    const limitText=max===1?`<span class="relic-selected-limit">MAX 1</span>`:'';
     return `<div class="slot relic-option ${catClass}" draggable="true" data-relic-slot="${n}" ondragstart="startRelicDrag(${n},event)" ondragover="allowRelicDrop(event)" ondrop="dropRelic(${n},event)" ondragend="endRelicDrag()">
       <div class="slot-index" title="Drag to reorder">${n+1}</div>
       <div class="relic-icon-cell"><div class="icon"><img src="${esc(r.icon)}" alt="${esc(r.name)}" loading="lazy" onerror="this.style.display='none'"></div></div>
@@ -3603,7 +3606,7 @@ function renderModalOptions(){
   el('modalOptions').innerHTML=filtered.map((o,row)=>{
     const cat=relicCategory(o.x);
     const cls=relicCategoryClass(o.x);
-    const max=relicMaxAmount(o.x); const used=relicSelectedCount(o.i); const badge=Number(o.x?.maxAmount)>0?`<span class="relic-max-badge">MAX ${max}</span>`:''; const blocked=used>=max || state.relics.length>=3; return `<button class="option relic-option ${cls}" onclick="addSelected(${o.i})" ${blocked?'aria-disabled="true"':''}><div class="relic-index-cell">${row+1}</div><div class="relic-icon-cell"><div class="icon"><img src="${esc(o.x.icon)}" alt="${esc(o.x.name)}" loading="lazy" onerror="this.style.display='none'"></div></div><div class="relic-name-cell"><div class="name">${esc(o.x.name)}${badge}</div></div><div class="relic-rarity-cell">${esc(cat||'')}</div><div class="relic-desc-cell">${esc(o.x.desc||'')}</div></button>`;
+    const max=relicMaxAmount(o.x); const used=relicSelectedCount(o.i); const badge=max===1?`<span class="relic-max-badge">MAX 1</span>`:''; const blocked=used>=max || state.relics.length>=3; return `<button class="option relic-option ${cls}" onclick="addSelected(${o.i})" ${blocked?'aria-disabled="true"':''}><div class="relic-index-cell">${row+1}</div><div class="relic-icon-cell"><div class="icon"><img src="${esc(o.x.icon)}" alt="${esc(o.x.name)}" loading="lazy" onerror="this.style.display='none'"></div></div><div class="relic-name-cell"><div class="name">${esc(o.x.name)}${badge}</div></div><div class="relic-rarity-cell">${esc(cat||'')}</div><div class="relic-desc-cell">${esc(o.x.desc||'')}</div></button>`;
   }).join('');
 }
 function showRelicModalWarning(message){
@@ -3767,6 +3770,29 @@ function wrapText(ctx,text,x,y,maxWidth,lineHeight,maxLines=20){
   for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width>maxWidth&&line){lines.push(line);line=word;if(lines.length>=maxLines)break;}else line=test;}
   if(lines.length<maxLines&&line)lines.push(line);
   lines.forEach((ln,i)=>ctx.fillText(ln,x,y+i*lineHeight));
+  return lines.length*lineHeight;
+}
+// v162 fix: horizontal export needs these helpers at global scope.
+// The original copies were nested inside the vertical export function, so the
+// horizontal export raised ReferenceError: wrapTextCentered is not defined.
+function getWrappedLines(ctx,text,maxWidth,maxLines=20){
+  const words=String(text||'').split(/\s+/);let line='',lines=[];
+  for(const word of words){
+    const test=line?line+' '+word:word;
+    if(ctx.measureText(test).width>maxWidth&&line){
+      lines.push(line);line=word;
+      if(lines.length>=maxLines)break;
+    }else line=test;
+  }
+  if(lines.length<maxLines&&line)lines.push(line);
+  return lines.length?lines:[''];
+}
+function wrapTextCentered(ctx,text,cx,y,maxWidth,lineHeight,maxLines=20){
+  const lines=getWrappedLines(ctx,text,maxWidth,maxLines);
+  const previousAlign=ctx.textAlign;
+  ctx.textAlign='center';
+  lines.forEach((line,i)=>ctx.fillText(line,cx,y+i*lineHeight));
+  ctx.textAlign=previousAlign||'left';
   return lines.length*lineHeight;
 }
 function drawBadge(ctx,text,x,y){
